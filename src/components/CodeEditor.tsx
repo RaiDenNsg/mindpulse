@@ -1,8 +1,5 @@
-import { useState, useEffect, Suspense, lazy, type ComponentProps } from "react";
-
-const MonacoEditor = lazy(() =>
-  import("@monaco-editor/react").then((mod) => ({ default: mod.default }))
-);
+import { useState, useEffect, type ComponentType } from "react";
+import type { EditorProps } from "@monaco-editor/react";
 
 interface CodeEditorProps {
   onKeyDown: (key: string) => void;
@@ -21,10 +18,29 @@ function EditorFallback() {
 
 export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
   const [mounted, setMounted] = useState(false);
+  const [MonacoEditor, setMonacoEditor] = useState<ComponentType<EditorProps> | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
+    let active = true;
+
+    import("@monaco-editor/react").then((mod) => {
+      if (active) {
+        setMonacoEditor(() => mod.default);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [mounted]);
 
   return (
     <div className="glass-card overflow-hidden fade-in">
@@ -36,34 +52,32 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
         </div>
         <span className="text-xs text-muted-foreground ml-2 font-mono">mindpulse.js</span>
       </div>
-      {mounted ? (
-        <Suspense fallback={<EditorFallback />}>
-          <MonacoEditor
-            height="400px"
-            defaultLanguage="javascript"
-            defaultValue="// Start coding..."
-            theme="vs-dark"
-            onMount={(editor) => {
-              editor.onKeyDown((e) => {
-                onKeyDown(e.browserEvent.key);
-              });
-              editor.focus();
-            }}
-            loading={<EditorFallback />}
-            options={{
-              fontSize: 14,
-              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              padding: { top: 16 },
-              lineNumbers: "on",
-              renderLineHighlight: "gutter",
-              smoothScrolling: true,
-              cursorBlinking: "smooth",
-              cursorSmoothCaretAnimation: "on",
-            }}
-          />
-        </Suspense>
+      {mounted && MonacoEditor ? (
+        <MonacoEditor
+          height="400px"
+          defaultLanguage="javascript"
+          defaultValue="// Start coding..."
+          theme="vs-dark"
+          onMount={(editor) => {
+            editor.onKeyDown((e) => {
+              onKeyDown(e.browserEvent.key);
+            });
+            editor.focus();
+          }}
+          loading={<EditorFallback />}
+          options={{
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            padding: { top: 16 },
+            lineNumbers: "on",
+            renderLineHighlight: "gutter",
+            smoothScrolling: true,
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+          }}
+        />
       ) : (
         <EditorFallback />
       )}
