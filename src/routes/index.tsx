@@ -21,23 +21,29 @@ function Dashboard() {
   const { state, handleKeyDown } = useTracking();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="pointer-events-none absolute -top-20 -left-24 h-72 w-72 rounded-full bg-primary/12 blur-3xl" />
+      <div className="pointer-events-none absolute top-28 -right-20 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-neutral-yellow/10 blur-3xl" />
+
       {/* Header */}
-      <header className="border-b border-border/50 px-6 py-4">
+      <header className="border-b border-border/40 px-6 py-5 backdrop-blur-md bg-background/45 relative z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <span className="text-primary font-bold text-sm">M</span>
+            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/35 flex items-center justify-center shadow-[0_0_26px_oklch(0.72_0.19_160_/20%)]">
+              <span className="text-primary font-extrabold text-base">M</span>
             </div>
-            <h1 className="text-lg font-bold text-foreground tracking-tight">MindPulse</h1>
-            <span className="text-xs text-muted-foreground hidden sm:inline">Cognitive Intelligence</span>
+            <div>
+              <h1 className="text-[1.3rem] leading-none font-extrabold text-foreground tracking-tight">MindPulse</h1>
+              <span className="text-xs text-muted-foreground tracking-[0.2em] uppercase hidden sm:inline">Cognitive Intelligence</span>
+            </div>
           </div>
           <StatusBadge focusState={state.focusState} />
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-7 relative z-10">
         {/* Editor */}
         <CodeEditor onKeyDown={handleKeyDown} />
 
@@ -52,10 +58,10 @@ function Dashboard() {
 
         {/* Graph + Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 fade-in fade-in-delay-2">
             <CognitiveGraph data={state.graphData} />
           </div>
-          <div className="space-y-6">
+          <div className="space-y-6 fade-in fade-in-delay-3">
             <InsightsPanel insight={state.insight} focusState={state.focusState} />
             <DailyReport />
           </div>

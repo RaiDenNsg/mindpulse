@@ -14,11 +14,11 @@ function StatCard({ label, value, unit, color = "default" }: StatCardProps) {
   };
 
   return (
-    <div className="glass-card p-5 fade-in">
-      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
+    <div className="glass-card p-6 lg:p-6.5 fade-in fade-in-delay-1">
+      <p className="text-[11px] text-muted-foreground uppercase tracking-[0.22em] mb-3 font-semibold">{label}</p>
       <p className={`stat-value ${colorMap[color]}`}>
         {value}
-        {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+        {unit && <span className="text-base font-medium text-muted-foreground ml-1.5">{unit}</span>}
       </p>
     </div>
   );
@@ -48,7 +48,7 @@ export default function StatsPanel({
   const loadColor = cognitiveLoad < 20 ? "green" : cognitiveLoad < 50 ? "yellow" : "red";
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
       <StatCard label="Typing Speed" value={typingSpeed} unit="k/min" color="green" />
       <StatCard label="Backspace Rate" value={`${backspaceRate}%`} color={backspaceRate > 25 ? "red" : "default"} />
       <StatCard label="Cognitive Load" value={cognitiveLoad} color={loadColor} />

@@ -16,11 +16,11 @@ export default function InsightsPanel({ insight, focusState }: InsightsPanelProp
     : "border-border";
 
   return (
-    <div className={`glass-card p-6 border-l-4 ${borderColor} fade-in`}>
-      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+    <div className={`glass-card p-6 border-l-4 ${borderColor} fade-in fade-in-delay-2`}>
+      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.22em] mb-3">
         Live Insight
       </h3>
-      <p className={`text-lg font-medium ${getFocusColor(focusState)}`}>
+      <p className={`text-[1.08rem] leading-relaxed font-semibold ${getFocusColor(focusState)}`}>
         {insight}
       </p>
     </div>
