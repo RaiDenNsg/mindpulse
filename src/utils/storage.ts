@@ -53,3 +53,17 @@ export function getStreak(): number {
   }
   return streak;
 }
+
+export function getLastNDaysSessions(days: number): Array<{ date: string; session: SessionData | null }> {
+  const all = getAll();
+  const result: Array<{ date: string; session: SessionData | null }> = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    result.push({ date: key, session: all[key] ?? null });
+  }
+
+  return result;
+}
