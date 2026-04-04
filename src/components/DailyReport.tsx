@@ -29,11 +29,28 @@ function DailyReportContent() {
   const streak = getStreak();
   const sevenDaySessions = getLastNDaysSessions(7);
 
+  const clampMetric = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
+  const safeMetric = (value?: number) => clampMetric(value ?? 0);
+
+  const todayMetrics = {
+    focusScore: safeMetric(today?.focusScore),
+    productivity: safeMetric(today?.productivity),
+    backspaceRate: safeMetric(today?.backspaceRate),
+    avgCognitiveLoad: safeMetric(today?.avgCognitiveLoad),
+  };
+
+  const yesterdayMetrics = {
+    focusScore: safeMetric(yesterday?.focusScore),
+    productivity: safeMetric(yesterday?.productivity),
+    backspaceRate: safeMetric(yesterday?.backspaceRate),
+    avgCognitiveLoad: safeMetric(yesterday?.avgCognitiveLoad),
+  };
+
   const chartData = sevenDaySessions.map(({ date, session }) => {
     const day = new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "short" });
     return {
       day,
-      focusScore: session?.focusScore ?? null,
+      focusScore: session ? clampMetric(session.focusScore) : null,
     };
   });
 
@@ -77,13 +94,11 @@ function DailyReportContent() {
     todayVal,
     yesterdayVal,
     higherIsBetter,
-    suffix = "%",
   }: {
     label: string;
     todayVal?: number;
     yesterdayVal?: number;
     higherIsBetter: boolean;
-    suffix?: string;
   }) => {
     const comparison = todayVal !== undefined && yesterdayVal !== undefined
       ? formatComparison(todayVal, yesterdayVal, higherIsBetter)
@@ -93,7 +108,7 @@ function DailyReportContent() {
     <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-4">
-        <span className="text-sm font-mono text-foreground">{todayVal !== undefined ? `${todayVal}${suffix}` : "—"}</span>
+        <span className="text-sm font-mono text-foreground">{todayVal !== undefined ? todayVal : 0}</span>
         {comparison && (
           <span className={`text-xs font-mono ${comparison.improved ? "text-focus-green" : "text-struggle-red"}`}>
             {comparison.text}
@@ -105,13 +120,13 @@ function DailyReportContent() {
   };
 
   const getComparisonInsight = () => {
-    if (!today || !yesterday) {
+    if (!today && !yesterday) {
       return null;
     }
 
-    const focusDelta = getPercentChange(today.focusScore, yesterday.focusScore, true) ?? 0;
-    const prodDelta = getPercentChange(today.productivity, yesterday.productivity, true) ?? 0;
-    const backspaceDelta = getPercentChange(today.backspaceRate, yesterday.backspaceRate, false) ?? 0;
+    const focusDelta = getPercentChange(todayMetrics.focusScore, yesterdayMetrics.focusScore, true) ?? 0;
+    const prodDelta = getPercentChange(todayMetrics.productivity, yesterdayMetrics.productivity, true) ?? 0;
+    const backspaceDelta = getPercentChange(todayMetrics.backspaceRate, yesterdayMetrics.backspaceRate, false) ?? 0;
 
     const improvedCount = [focusDelta, prodDelta, backspaceDelta].filter((d) => d > 0).length;
     const declinedCount = [focusDelta, prodDelta, backspaceDelta].filter((d) => d < 0).length;
@@ -163,26 +178,26 @@ function DailyReportContent() {
         <>
           <Row
             label="Focus Score"
-            todayVal={today?.focusScore}
-            yesterdayVal={yesterday?.focusScore}
+            todayVal={todayMetrics.focusScore}
+            yesterdayVal={yesterdayMetrics.focusScore}
             higherIsBetter
           />
           <Row
             label="Productivity"
-            todayVal={today?.productivity}
-            yesterdayVal={yesterday?.productivity}
+            todayVal={todayMetrics.productivity}
+            yesterdayVal={yesterdayMetrics.productivity}
             higherIsBetter
           />
           <Row
             label="Backspace Rate"
-            todayVal={today?.backspaceRate}
-            yesterdayVal={yesterday?.backspaceRate}
+            todayVal={todayMetrics.backspaceRate}
+            yesterdayVal={yesterdayMetrics.backspaceRate}
             higherIsBetter={false}
           />
           <Row
             label="Avg Cognitive Load"
-            todayVal={today?.avgCognitiveLoad}
-            yesterdayVal={yesterday?.avgCognitiveLoad}
+            todayVal={todayMetrics.avgCognitiveLoad}
+            yesterdayVal={yesterdayMetrics.avgCognitiveLoad}
             higherIsBetter={false}
           />
 
