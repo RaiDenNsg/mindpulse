@@ -11,7 +11,7 @@ export default function CognitiveGraph({ data }: CognitiveGraphProps) {
         Cognitive Load Over Time
       </h3>
       <div className="h-[250px]">
-        {data.length < 2 ? (
+        {data.length === 0 ? (
           <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
             Start typing to generate data...
           </div>
@@ -40,7 +40,7 @@ export default function CognitiveGraph({ data }: CognitiveGraphProps) {
                 dataKey="load"
                 stroke="oklch(0.72 0.19 160)"
                 strokeWidth={2.5}
-                dot={false}
+                dot={{ r: 3, fill: "oklch(0.72 0.19 160)" }}
                 activeDot={{ r: 4, fill: "oklch(0.72 0.19 160)" }}
               />
             </LineChart>

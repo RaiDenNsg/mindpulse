@@ -63,17 +63,18 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
 
   const runCode = () => {
     const lines: OutputLine[] = [];
-    const originalLog = console.log;
-
-    console.log = (...args: unknown[]) => {
-      lines.push({
-        type: "log",
-        text: args.map(formatOutputValue).join(" "),
-      });
+    const capturedConsole = {
+      log: (...args: unknown[]) => {
+        lines.push({
+          type: "log",
+          text: args.map(formatOutputValue).join(" "),
+        });
+      },
     };
 
     try {
-      const result = eval(code);
+      const runner = new Function("console", `"use strict";\n${code}`);
+      const result = runner(capturedConsole);
 
       if (typeof result !== "undefined") {
         lines.push({
@@ -82,12 +83,18 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
         });
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       lines.push({
         type: "error",
-        text: error instanceof Error ? error.message : String(error),
+        text: message,
       });
-    } finally {
-      console.log = originalLog;
+
+      if (message.includes("innerHTML") || message.includes("getElementById")) {
+        lines.push({
+          type: "error",
+          text: "Output panel is React-state based. Use console.log(...) instead of direct DOM manipulation.",
+        });
+      }
     }
 
     if (lines.length === 0) {

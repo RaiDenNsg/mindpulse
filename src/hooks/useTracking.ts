@@ -45,7 +45,6 @@ export function useTracking() {
   const lastKeypressRef = useRef(Date.now());
   const sessionStartRef = useRef(Date.now());
   const typingTimeRef = useRef(0);
-  const lastTypingCheckRef = useRef(Date.now());
   const cognitiveLoadsRef = useRef<number[]>([]);
 
   const handleKeyDown = useCallback((key: string) => {
@@ -84,6 +83,8 @@ export function useTracking() {
       const fScore = calculateFocusScore(typingTimeRef.current, sessionMs);
       const prod = calculateProductivity(fScore, bRate);
       const insight = getInsightMessage(focus, bRate, idleSec, load);
+      const nextPoint = { time: Math.round(sessionSec), load: Math.round(load) };
+      const hasTypingActivity = keystrokesRef.current > 0;
 
       cognitiveLoadsRef.current.push(load);
 
@@ -99,7 +100,9 @@ export function useTracking() {
         backspaceRate: bRate,
         sessionDuration: Math.round(sessionSec),
         insight,
-        graphData: [...prev.graphData, { time: Math.round(sessionSec), load: Math.round(load) }],
+        graphData: hasTypingActivity
+          ? [...prev.graphData, nextPoint].slice(-120)
+          : prev.graphData,
       }));
 
       // Auto-save session
