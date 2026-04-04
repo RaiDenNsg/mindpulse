@@ -5,6 +5,11 @@ interface CodeEditorProps {
   onKeyDown: (key: string) => void;
 }
 
+interface OutputLine {
+  type: "log" | "error";
+  text: string;
+}
+
 function EditorFallback() {
   return (
     <div className="h-[400px] flex items-center justify-center bg-[oklch(0.14_0.01_260)] text-muted-foreground text-sm">
@@ -19,6 +24,8 @@ function EditorFallback() {
 export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
   const [mounted, setMounted] = useState(false);
   const [MonacoEditor, setMonacoEditor] = useState<ComponentType<EditorProps> | null>(null);
+  const [code, setCode] = useState("// Start coding...");
+  const [output, setOutput] = useState<OutputLine[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -42,6 +49,57 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
     };
   }, [mounted]);
 
+  const formatOutputValue = (value: unknown) => {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  };
+
+  const runCode = () => {
+    const lines: OutputLine[] = [];
+    const originalLog = console.log;
+
+    console.log = (...args: unknown[]) => {
+      lines.push({
+        type: "log",
+        text: args.map(formatOutputValue).join(" "),
+      });
+    };
+
+    try {
+      const result = eval(code);
+
+      if (typeof result !== "undefined") {
+        lines.push({
+          type: "log",
+          text: formatOutputValue(result),
+        });
+      }
+    } catch (error) {
+      lines.push({
+        type: "error",
+        text: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      console.log = originalLog;
+    }
+
+    if (lines.length === 0) {
+      lines.push({
+        type: "log",
+        text: "(no output)",
+      });
+    }
+
+    setOutput(lines);
+  };
+
   return (
     <div className="glass-card overflow-hidden fade-in">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
@@ -56,7 +114,10 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
         <MonacoEditor
           height="400px"
           defaultLanguage="javascript"
-          defaultValue="// Start coding..."
+          value={code}
+          onChange={(value) => {
+            setCode(value ?? "");
+          }}
           theme="vs-dark"
           onMount={(editor) => {
             editor.onKeyDown((e) => {
@@ -81,6 +142,29 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
       ) : (
         <EditorFallback />
       )}
+      <div className="px-4 pb-4 pt-3 border-t border-border space-y-3">
+        <button
+          type="button"
+          onClick={runCode}
+          className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Run Code
+        </button>
+        <div className="rounded-md border border-border bg-black/90 p-3 min-h-[120px] font-mono text-sm overflow-auto">
+          {output.length === 0 ? (
+            <p className="text-emerald-400/70">Output will appear here...</p>
+          ) : (
+            output.map((line, index) => (
+              <pre
+                key={`${line.type}-${index}`}
+                className={`whitespace-pre-wrap break-words ${line.type === "error" ? "text-red-400" : "text-emerald-400"}`}
+              >
+                {line.text}
+              </pre>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
