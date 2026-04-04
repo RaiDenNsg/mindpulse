@@ -23,7 +23,8 @@ export function detectFocusState(
 
 export function calculateFocusScore(typingTime: number, totalTime: number): number {
   if (totalTime === 0) return 0;
-  return Math.round((typingTime / totalTime) * 100);
+  const rawScore = Math.round((typingTime / totalTime) * 100);
+  return Math.max(0, Math.min(100, rawScore));
 }
 
 export function calculateProductivity(focusScore: number, backspaceRate: number): number {

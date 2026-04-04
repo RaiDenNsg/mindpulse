@@ -27,8 +27,8 @@ function Dashboard() {
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-neutral-yellow/10 blur-3xl" />
 
       {/* Header */}
-      <header className="border-b border-border/40 px-6 py-5 backdrop-blur-md bg-background/45 relative z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="border-b border-border/40 px-4 sm:px-6 xl:px-10 py-5 backdrop-blur-md bg-background/45 relative z-10">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/35 flex items-center justify-center shadow-[0_0_26px_oklch(0.72_0.19_160_/20%)]">
               <span className="text-primary font-extrabold text-base">M</span>
@@ -43,7 +43,7 @@ function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-7 relative z-10">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-8 space-y-7 relative z-10">
         {/* Editor */}
         <CodeEditor onKeyDown={handleKeyDown} />
 
@@ -57,11 +57,11 @@ function Dashboard() {
         />
 
         {/* Graph + Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 fade-in fade-in-delay-2">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)] gap-6 xl:gap-7">
+          <div className="fade-in fade-in-delay-2 min-w-0">
             <CognitiveGraph data={state.graphData} />
           </div>
-          <div className="space-y-6 fade-in fade-in-delay-3">
+          <div className="space-y-6 fade-in fade-in-delay-3 min-w-0">
             <InsightsPanel insight={state.insight} focusState={state.focusState} />
             <DailyReport />
           </div>
