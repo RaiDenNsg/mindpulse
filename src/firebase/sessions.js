@@ -18,12 +18,21 @@ function getDateKey(offsetDays = 0) {
   return date.toISOString().split("T")[0];
 }
 
+function normalizeDateKey(value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return getDateKey();
+  }
+
+  const normalized = value.includes("T") ? value.split("T")[0] : value;
+  return normalized || getDateKey();
+}
+
 export async function saveSession(userId, sessionData) {
   if (!userId) {
     throw new Error("userId is required to save a session");
   }
 
-  const date = sessionData?.date ?? getDateKey();
+  const date = normalizeDateKey(sessionData?.date);
   const documentId = `${userId}_${date}`;
 
   const payload = {

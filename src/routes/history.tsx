@@ -204,9 +204,17 @@ function HistoryPage() {
   }, [sessions]);
 
   const sevenDayFocusData = useMemo(() => {
-    const byDate = new Map<string, SessionRecord>();
+    const byDate = new Map<string, { sum: number; count: number }>();
     sessions.forEach((session) => {
-      byDate.set(session.date, session);
+      if (!session.date) {
+        return;
+      }
+
+      const current = byDate.get(session.date) ?? { sum: 0, count: 0 };
+      byDate.set(session.date, {
+        sum: current.sum + session.focusScore,
+        count: current.count + 1,
+      });
     });
 
     const points: Array<{ day: string; focusScore: number | null }> = [];
@@ -218,7 +226,9 @@ function HistoryPage() {
 
       points.push({
         day: day.toLocaleDateString("en-US", { weekday: "short" }),
-        focusScore: byDate.get(key)?.focusScore ?? null,
+        focusScore: byDate.has(key)
+          ? Math.round((byDate.get(key)?.sum ?? 0) / Math.max(1, byDate.get(key)?.count ?? 1))
+          : null,
       });
     }
 
