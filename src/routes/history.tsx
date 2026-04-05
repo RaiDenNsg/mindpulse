@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { cleanupDuplicateSessions, getUserSessions } from "@/firebase/sessions";
+import { getUserSessions } from "@/firebase/sessions";
 import { subscribeToAuthState } from "@/firebase/auth";
 
 interface SessionRecord {
@@ -116,8 +116,6 @@ function formatDuration(seconds: number): string {
 function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [cleanupStatus, setCleanupStatus] = useState<string>("");
-  const [isCleaning, setIsCleaning] = useState(false);
   const activeUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -239,33 +237,6 @@ function HistoryPage() {
 
   const hasSevenDayPoints = sevenDayFocusData.some((point) => point.focusScore !== null);
 
-  const handleCleanupDuplicates = async () => {
-    const userId = activeUserIdRef.current;
-    if (!userId || isCleaning) {
-      return;
-    }
-
-    setIsCleaning(true);
-    setCleanupStatus("Running one-time cleanup...");
-
-    try {
-      const result = await cleanupDuplicateSessions(userId);
-      setCleanupStatus(`Cleanup complete: merged ${result.mergedDates} day(s), deleted ${result.deletedDocs} duplicate doc(s).`);
-
-      const refreshed = await getUserSessions(userId);
-      const mapped = refreshed
-        .map((item: Record<string, unknown>) => normalizeSession(item))
-        .filter((item: SessionRecord) => Boolean(item.date))
-        .sort((a: SessionRecord, b: SessionRecord) => b.date.localeCompare(a.date));
-
-      setSessions(mapped);
-    } catch {
-      setCleanupStatus("Cleanup failed. Please try again.");
-    } finally {
-      setIsCleaning(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <div className="pointer-events-none absolute -top-20 -left-24 h-72 w-72 rounded-full bg-primary/12 blur-3xl" />
@@ -293,26 +264,6 @@ function HistoryPage() {
       </header>
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-8 space-y-6 relative z-10">
-        <div className="glass-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">Data Maintenance</p>
-            <p className="text-xs text-muted-foreground">Merge and remove old duplicate session documents (one-time utility).</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              void handleCleanupDuplicates();
-            }}
-            disabled={isCleaning || !activeUserIdRef.current}
-            className="px-3 py-1.5 text-xs rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isCleaning ? "Cleaning..." : "Cleanup Duplicates"}
-          </button>
-          {cleanupStatus && (
-            <p className="text-xs text-muted-foreground sm:ml-2">{cleanupStatus}</p>
-          )}
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="glass-card p-4">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Total Sessions</p>
