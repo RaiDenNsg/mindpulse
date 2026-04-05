@@ -13,8 +13,64 @@ import { saveSession } from "@/firebase/sessions";
 
 const GRAPH_UPDATE_INTERVAL_MS = 5000;
 const AUTO_SAVE_INTERVAL_MS = 60000;
-const MIN_TYPING_BEFORE_SAVE_MS = 30000;
+const MIN_TYPING_BEFORE_SAVE_MS = 10000;
 const SESSION_SAVED_EVENT = "mindpulse:session-saved";
+const GRAPH_STORAGE_KEY = "mindpulse_graph_data";
+
+type GraphPoint = { time: number; load: number };
+
+function loadPersistedGraphData(): GraphPoint[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = localStorage.getItem(GRAPH_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as { date?: string; points?: GraphPoint[] };
+    const today = getTodayKey();
+    if (parsed?.date !== today || !Array.isArray(parsed?.points)) {
+      localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify({ date: today, points: [] }));
+      return [];
+    }
+
+    return parsed.points
+      .filter((point) => typeof point?.time === "number" && typeof point?.load === "number")
+      .slice(-120);
+  } catch {
+    return [];
+  }
+}
+
+function persistGraphData(points: GraphPoint[], dateKey: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify({
+      date: dateKey,
+      points: points.slice(-120),
+    }));
+  } catch {
+    // Ignore storage failures so tracking UI remains functional.
+  }
+}
+
+function clearPersistedGraphData(dateKey: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.setItem(GRAPH_STORAGE_KEY, JSON.stringify({ date: dateKey, points: [] }));
+  } catch {
+    // Ignore storage failures so tracking UI remains functional.
+  }
+}
 
 export interface TrackingState {
   totalKeystrokes: number;
@@ -32,6 +88,8 @@ export interface TrackingState {
 }
 
 export function useTracking() {
+  const initialGraphData = loadPersistedGraphData();
+
   const [state, setState] = useState<TrackingState>({
     totalKeystrokes: 0,
     backspaceCount: 0,
@@ -44,7 +102,7 @@ export function useTracking() {
     backspaceRate: 0,
     sessionDuration: 0,
     insight: "Start typing to begin tracking 🎯",
-    graphData: [],
+    graphData: initialGraphData,
   });
 
   const keystrokesRef = useRef(0);
@@ -56,7 +114,8 @@ export function useTracking() {
   const intervalKeystrokesRef = useRef(0);
   const intervalBackspacesRef = useRef(0);
   const lastSavedAtRef = useRef(0);
-  const hasStartedTypingRef = useRef(false);
+  const hasStartedTypingRef = useRef(initialGraphData.length > 0);
+  const currentGraphDateRef = useRef(getTodayKey());
 
   const handleKeyDown = useCallback((key: string) => {
     const now = Date.now();
@@ -134,6 +193,21 @@ export function useTracking() {
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
+      const todayKey = getTodayKey();
+
+      if (todayKey !== currentGraphDateRef.current) {
+        currentGraphDateRef.current = todayKey;
+        cognitiveLoadsRef.current = [];
+        hasStartedTypingRef.current = false;
+
+        setState((prev) => ({
+          ...prev,
+          graphData: [],
+        }));
+
+        clearPersistedGraphData(todayKey);
+      }
+
       const sessionMs = now - sessionStartRef.current;
       const sessionSec = sessionMs / 1000;
       const sessionMin = sessionMs / 60000;
@@ -167,24 +241,32 @@ export function useTracking() {
 
       cognitiveLoadsRef.current.push(load);
 
-      setState(prev => ({
-        totalKeystrokes: keystrokesRef.current,
-        backspaceCount: backspacesRef.current,
-        typingSpeed: sessionMin > 0 ? Math.round(keystrokesRef.current / sessionMin) : 0,
-        idleTime: Math.round(idleSec),
-        cognitiveLoad: Math.round(load),
-        focusState: focus,
-        focusScore: fScore,
-        productivity: prod,
-        backspaceRate: keystrokesRef.current > 0
-          ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
-          : 0,
-        sessionDuration: Math.round(sessionSec),
-        insight,
-        graphData: shouldAppendGraphPoint
+      let nextGraphData: GraphPoint[] = [];
+
+      setState(prev => {
+        nextGraphData = shouldAppendGraphPoint
           ? [...prev.graphData, nextPoint].slice(-120)
-          : prev.graphData,
-      }));
+          : prev.graphData;
+
+        return {
+          totalKeystrokes: keystrokesRef.current,
+          backspaceCount: backspacesRef.current,
+          typingSpeed: sessionMin > 0 ? Math.round(keystrokesRef.current / sessionMin) : 0,
+          idleTime: Math.round(idleSec),
+          cognitiveLoad: Math.round(load),
+          focusState: focus,
+          focusScore: fScore,
+          productivity: prod,
+          backspaceRate: keystrokesRef.current > 0
+            ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+            : 0,
+          sessionDuration: Math.round(sessionSec),
+          insight,
+          graphData: nextGraphData,
+        };
+      });
+
+      persistGraphData(nextGraphData, currentGraphDateRef.current);
 
       // Reset per-interval counters after processing
       intervalKeystrokesRef.current = 0;
