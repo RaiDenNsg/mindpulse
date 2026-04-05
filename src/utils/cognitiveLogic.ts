@@ -5,8 +5,8 @@ export function calculateCognitiveLoad(
   idleTime: number,
   typingSpeed: number
 ): number {
-  const raw = (backspaceCount * 2) + (idleTime * 1.5) - (typingSpeed * 0.5);
-  return Math.max(0, Math.min(100, Math.round(raw)));
+  const raw = (backspaceCount * 1.5) + (idleTime * 0.5) - (typingSpeed * 0.8);
+  return Math.max(0, Math.min(60, Math.round(raw)));
 }
 
 export function detectFocusState(

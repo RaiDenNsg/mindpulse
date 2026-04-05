@@ -160,6 +160,7 @@ function DailyReportContent({
     : null;
   const today = savedToday ?? liveToday;
   const yesterday = sessionsByDate[yesterdayKey] ?? cachedYesterdaySession;
+  const hasPreviousSession = Boolean(yesterday);
 
   let streak = 0;
   const streakCursor = new Date();
@@ -332,25 +333,25 @@ function DailyReportContent({
           <Row
             label="Focus Score"
             todayVal={todayMetrics.focusScore}
-            yesterdayVal={yesterdayMetrics.focusScore}
+            yesterdayVal={hasPreviousSession ? yesterdayMetrics.focusScore : undefined}
             higherIsBetter
           />
           <Row
             label="Productivity"
             todayVal={todayMetrics.productivity}
-            yesterdayVal={yesterdayMetrics.productivity}
+            yesterdayVal={hasPreviousSession ? yesterdayMetrics.productivity : undefined}
             higherIsBetter
           />
           <Row
             label="Backspace Rate"
             todayVal={todayMetrics.backspaceRate}
-            yesterdayVal={yesterdayMetrics.backspaceRate}
+            yesterdayVal={hasPreviousSession ? yesterdayMetrics.backspaceRate : undefined}
             higherIsBetter={false}
           />
           <Row
             label="Avg Cognitive Load"
             todayVal={todayMetrics.avgCognitiveLoad}
-            yesterdayVal={yesterdayMetrics.avgCognitiveLoad}
+            yesterdayVal={hasPreviousSession ? yesterdayMetrics.avgCognitiveLoad : undefined}
             higherIsBetter={false}
           />
 
