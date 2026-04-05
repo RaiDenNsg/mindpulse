@@ -3,7 +3,6 @@ import {
   doc,
   getDocs,
   limit,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -44,15 +43,14 @@ export async function getUserSessions(userId) {
 
   const sessionsQuery = query(
     collection(db, SESSIONS_COLLECTION),
-    where("userId", "==", userId),
-    orderBy("date", "asc")
+    where("userId", "==", userId)
   );
 
   const snapshot = await getDocs(sessionsQuery);
   return snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  }));
+  })).sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
 }
 
 export async function getYesterdaySession(userId) {

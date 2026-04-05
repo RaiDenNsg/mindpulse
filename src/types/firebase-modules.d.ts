@@ -13,3 +13,11 @@ declare module "@/firebase/auth" {
   export function signOutUser(): Promise<void>;
   export function subscribeToAuthState(callback: (user: AuthUser | null) => void): () => void;
 }
+
+declare module "@/firebase/config" {
+  interface FirebaseAuthLike {
+    currentUser?: { uid: string } | null;
+  }
+
+  export const auth: FirebaseAuthLike | null;
+}
