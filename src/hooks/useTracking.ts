@@ -46,6 +46,8 @@ export function useTracking() {
   const sessionStartRef = useRef(Date.now());
   const typingTimeRef = useRef(0);
   const cognitiveLoadsRef = useRef<number[]>([]);
+  const intervalKeystrokesRef = useRef(0);
+  const intervalBackspacesRef = useRef(0);
 
   const handleKeyDown = useCallback((key: string) => {
     const now = Date.now();
@@ -58,9 +60,11 @@ export function useTracking() {
 
     lastKeypressRef.current = now;
     keystrokesRef.current++;
+    intervalKeystrokesRef.current++;
 
     if (key === "Backspace") {
       backspacesRef.current++;
+      intervalBackspacesRef.current++;
     }
   }, []);
 
@@ -73,37 +77,50 @@ export function useTracking() {
       const sessionMin = sessionMs / 60000;
       const idleSec = (now - lastKeypressRef.current) / 1000;
 
-      const speed = sessionMin > 0 ? Math.round(keystrokesRef.current / sessionMin) : 0;
-      const bRate = keystrokesRef.current > 0
-        ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+      // Use period-based metrics for more responsive cognitive load calculation
+      // This reflects current activity instead of session-wide averages
+      const periodSpeed = intervalKeystrokesRef.current > 0 
+        ? Math.round((intervalKeystrokesRef.current / 5) * 12) // keystrokes per minute in this period
+        : 0;
+      const periodBRate = intervalKeystrokesRef.current > 0
+        ? Math.round((intervalBackspacesRef.current / intervalKeystrokesRef.current) * 100)
         : 0;
 
-      const load = calculateCognitiveLoad(backspacesRef.current, idleSec, speed);
-      const focus = detectFocusState(speed, bRate, idleSec);
+      // Calculate cognitive load based on current period activity
+      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+      const focus = detectFocusState(periodSpeed, periodBRate, idleSec);
       const fScore = calculateFocusScore(typingTimeRef.current, sessionMs);
-      const prod = calculateProductivity(fScore, bRate);
-      const insight = getInsightMessage(focus, bRate, idleSec, load);
+      const prod = calculateProductivity(fScore, periodBRate);
+      const insight = getInsightMessage(focus, periodBRate, idleSec, load);
       const nextPoint = { time: Math.round(sessionSec), load: Math.round(load) };
-      const hasTypingActivity = keystrokesRef.current > 0;
+      
+      // Add to graph if there's been any typing activity in this period or overall
+      const hasTypingActivity = intervalKeystrokesRef.current > 0 || keystrokesRef.current > 0;
 
       cognitiveLoadsRef.current.push(load);
 
       setState(prev => ({
         totalKeystrokes: keystrokesRef.current,
         backspaceCount: backspacesRef.current,
-        typingSpeed: speed,
+        typingSpeed: sessionMin > 0 ? Math.round(keystrokesRef.current / sessionMin) : 0,
         idleTime: Math.round(idleSec),
         cognitiveLoad: Math.round(load),
         focusState: focus,
         focusScore: fScore,
         productivity: prod,
-        backspaceRate: bRate,
+        backspaceRate: keystrokesRef.current > 0
+          ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+          : 0,
         sessionDuration: Math.round(sessionSec),
         insight,
         graphData: hasTypingActivity
           ? [...prev.graphData, nextPoint].slice(-120)
           : prev.graphData,
       }));
+
+      // Reset per-interval counters after processing
+      intervalKeystrokesRef.current = 0;
+      intervalBackspacesRef.current = 0;
 
       // Auto-save session
       const avgLoad = cognitiveLoadsRef.current.length > 0
@@ -115,7 +132,9 @@ export function useTracking() {
         avgCognitiveLoad: Math.round(avgLoad),
         focusScore: fScore,
         productivity: prod,
-        backspaceRate: bRate,
+        backspaceRate: keystrokesRef.current > 0
+          ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+          : 0,
         sessionDuration: Math.round(sessionSec),
       });
     }, 5000);

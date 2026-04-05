@@ -89,10 +89,16 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
         text: message,
       });
 
-      if (message.includes("innerHTML") || message.includes("getElementById")) {
+      // Provide helpful message for common DOM manipulation attempts
+      if (
+        message.includes("innerHTML") ||
+        message.includes("getElementById") ||
+        message.includes("Cannot read properties of null") ||
+        message.includes("Cannot set property")
+      ) {
         lines.push({
           type: "error",
-          text: "Output panel is React-state based. Use console.log(...) instead of direct DOM manipulation.",
+          text: 'Code runs in a sandboxed environment without DOM access. Use console.log() to output results instead of direct DOM manipulation.',
         });
       }
     }
