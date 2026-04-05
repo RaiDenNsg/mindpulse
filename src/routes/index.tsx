@@ -6,6 +6,7 @@ import StatsPanel from "@/components/StatsPanel";
 import StatusBadge from "@/components/StatusBadge";
 import InsightsPanel from "@/components/InsightsPanel";
 import DailyReport from "@/components/DailyReport";
+import { signOutUser } from "@/firebase/auth";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -19,6 +20,14 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const { state, handleKeyDown } = useTracking();
+
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+    } catch {
+      // Keep UI stable if sign-out fails transiently.
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -38,7 +47,18 @@ function Dashboard() {
               <span className="text-xs text-muted-foreground tracking-[0.2em] uppercase hidden sm:inline">Cognitive Intelligence</span>
             </div>
           </div>
-          <StatusBadge focusState={state.focusState} />
+          <div className="flex items-center gap-2">
+            <StatusBadge focusState={state.focusState} />
+            <button
+              type="button"
+              onClick={() => {
+                void handleSignOut();
+              }}
+              className="px-2.5 py-1 text-xs rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
