@@ -1,11 +1,13 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   limit,
   query,
   serverTimestamp,
   setDoc,
+  writeBatch,
   where,
 } from "firebase/firestore";
 import { db } from "./config";
@@ -85,4 +87,65 @@ export async function getYesterdaySession(userId) {
     id: doc.id,
     ...doc.data(),
   };
+}
+
+export async function cleanupDuplicateSessions(userId) {
+  if (!userId) {
+    return { mergedDates: 0, deletedDocs: 0 };
+  }
+
+  const sessionsQuery = query(
+    collection(db, SESSIONS_COLLECTION),
+    where("userId", "==", userId)
+  );
+
+  const snapshot = await getDocs(sessionsQuery);
+  const byDate = new Map();
+
+  snapshot.docs.forEach((sessionDoc) => {
+    const data = sessionDoc.data();
+    const date = normalizeDateKey(data?.date);
+    const list = byDate.get(date) ?? [];
+    list.push({ id: sessionDoc.id, data, ref: sessionDoc.ref });
+    byDate.set(date, list);
+  });
+
+  let mergedDates = 0;
+  let deletedDocs = 0;
+
+  for (const [date, docsForDate] of byDate.entries()) {
+    if (!Array.isArray(docsForDate) || docsForDate.length <= 1) {
+      continue;
+    }
+
+    const canonicalId = `${userId}_${date}`;
+    const canonicalRef = doc(collection(db, SESSIONS_COLLECTION), canonicalId);
+    const merged = docsForDate.reduce((acc, item) => {
+      const source = item.data ?? {};
+      return {
+        ...acc,
+        ...source,
+        userId,
+        date,
+      };
+    }, {});
+
+    const batch = writeBatch(db);
+    batch.set(canonicalRef, {
+      ...merged,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    docsForDate.forEach((item) => {
+      if (item.id !== canonicalId) {
+        batch.delete(item.ref);
+        deletedDocs += 1;
+      }
+    });
+
+    await batch.commit();
+    mergedDates += 1;
+  }
+
+  return { mergedDates, deletedDocs };
 }
