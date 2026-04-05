@@ -6,7 +6,15 @@ import { getTodayKey, getYesterdayKey, type SessionData } from "@/utils/storage"
 
 const SESSION_SAVED_EVENT = "mindpulse:session-saved";
 
-export default function DailyReport() {
+interface DailyReportLiveSession {
+  avgCognitiveLoad: number;
+  focusScore: number;
+  productivity: number;
+  backspaceRate: number;
+  sessionDuration: number;
+}
+
+export default function DailyReport({ liveSession }: { liveSession?: DailyReportLiveSession | null }) {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionsByDate, setSessionsByDate] = useState<Record<string, SessionData>>({});
   const [cachedYesterdaySession, setCachedYesterdaySession] = useState<SessionData | null>(null);
@@ -88,7 +96,11 @@ export default function DailyReport() {
       const customEvent = event as CustomEvent<{ userId?: string }>;
       const savedUserId = customEvent.detail?.userId;
 
-      if (!savedUserId || savedUserId !== activeUserIdRef.current) {
+      if (!savedUserId) {
+        return;
+      }
+
+      if (activeUserIdRef.current && savedUserId !== activeUserIdRef.current) {
         return;
       }
 
@@ -115,19 +127,38 @@ export default function DailyReport() {
     );
   }
 
-  return <DailyReportContent sessionsByDate={sessionsByDate} cachedYesterdaySession={cachedYesterdaySession} />;
+  return (
+    <DailyReportContent
+      sessionsByDate={sessionsByDate}
+      cachedYesterdaySession={cachedYesterdaySession}
+      liveSession={liveSession}
+    />
+  );
 }
 
 function DailyReportContent({
   sessionsByDate,
   cachedYesterdaySession,
+  liveSession,
 }: {
   sessionsByDate: Record<string, SessionData>;
   cachedYesterdaySession: SessionData | null;
+  liveSession?: DailyReportLiveSession | null;
 }) {
   const todayKey = getTodayKey();
   const yesterdayKey = getYesterdayKey();
-  const today = sessionsByDate[todayKey] ?? null;
+  const savedToday = sessionsByDate[todayKey] ?? null;
+  const liveToday: SessionData | null = liveSession
+    ? {
+      date: todayKey,
+      avgCognitiveLoad: Number(liveSession.avgCognitiveLoad ?? 0),
+      focusScore: Number(liveSession.focusScore ?? 0),
+      productivity: Number(liveSession.productivity ?? 0),
+      backspaceRate: Number(liveSession.backspaceRate ?? 0),
+      sessionDuration: Number(liveSession.sessionDuration ?? 0),
+    }
+    : null;
+  const today = savedToday ?? liveToday;
   const yesterday = sessionsByDate[yesterdayKey] ?? cachedYesterdaySession;
 
   let streak = 0;
@@ -147,7 +178,8 @@ function DailyReportContent({
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = d.toISOString().split("T")[0];
-    sevenDaySessions.push({ date: key, session: sessionsByDate[key] ?? null });
+    const sessionForDay = key === todayKey ? (savedToday ?? liveToday) : (sessionsByDate[key] ?? null);
+    sevenDaySessions.push({ date: key, session: sessionForDay });
   }
 
   const clampMetric = (value: number) => Math.max(0, Math.min(100, Math.round(value)));

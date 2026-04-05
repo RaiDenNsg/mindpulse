@@ -63,7 +63,19 @@ function Dashboard() {
           </div>
           <div className="space-y-6 fade-in fade-in-delay-3 min-w-0">
             <InsightsPanel insight={state.insight} focusState={state.focusState} />
-            <DailyReport />
+            <DailyReport
+              liveSession={
+                state.totalKeystrokes > 0
+                  ? {
+                    avgCognitiveLoad: state.cognitiveLoad,
+                    focusScore: state.focusScore,
+                    productivity: state.productivity,
+                    backspaceRate: state.backspaceRate,
+                    sessionDuration: state.sessionDuration,
+                  }
+                  : null
+              }
+            />
           </div>
         </div>
       </main>
