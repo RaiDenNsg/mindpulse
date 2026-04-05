@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { subscribeToAuthState } from "@/firebase/auth";
 import { getUserSessions, getYesterdaySession } from "@/firebase/sessions";
@@ -10,13 +10,13 @@ export default function DailyReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionsByDate, setSessionsByDate] = useState<Record<string, SessionData>>({});
   const [cachedYesterdaySession, setCachedYesterdaySession] = useState<SessionData | null>(null);
-  const [activeUserId, setActiveUserId] = useState<string | null>(null);
+  const activeUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
     const loadSessions = async (userId: string | null | undefined) => {
-      setActiveUserId(userId ?? null);
+      activeUserIdRef.current = userId ?? null;
 
       if (!userId) {
         if (active) {
@@ -88,7 +88,7 @@ export default function DailyReport() {
       const customEvent = event as CustomEvent<{ userId?: string }>;
       const savedUserId = customEvent.detail?.userId;
 
-      if (!savedUserId || savedUserId !== activeUserId) {
+      if (!savedUserId || savedUserId !== activeUserIdRef.current) {
         return;
       }
 
@@ -102,7 +102,7 @@ export default function DailyReport() {
       unsubscribe();
       window.removeEventListener(SESSION_SAVED_EVENT, handleSessionSaved);
     };
-  }, [activeUserId]);
+  }, []);
 
   if (isLoading) {
     return (

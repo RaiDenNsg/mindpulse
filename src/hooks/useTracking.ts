@@ -93,16 +93,23 @@ export function useTracking() {
   const persistSessionData = useCallback((sessionSec: number, focusScore: number, productivity: number) => {
     const userId = auth?.currentUser?.uid;
     if (!userId) {
+      console.log("Skipping save: missing user uid");
       return;
     }
 
     if (typingTimeRef.current < MIN_TYPING_BEFORE_SAVE_MS) {
+      console.log("Skipping save: typing time below threshold", {
+        typingTimeMs: typingTimeRef.current,
+        requiredMs: MIN_TYPING_BEFORE_SAVE_MS,
+      });
       return;
     }
 
     const avgLoad = cognitiveLoadsRef.current.length > 0
       ? cognitiveLoadsRef.current.reduce((a, b) => a + b, 0) / cognitiveLoadsRef.current.length
       : 0;
+
+    console.log("Saving session...", { userId });
 
     void saveSession(userId, {
       date: getTodayKey(),
@@ -116,8 +123,10 @@ export function useTracking() {
     }).then(() => {
       lastSavedAtRef.current = Date.now();
       emitSessionSaved(userId);
+      console.log("Session saved successfully", { userId });
     }).catch(() => {
       // Silent fail to avoid interrupting tracking UI on transient network issues.
+      console.log("Session save failed");
     });
   }, [emitSessionSaved]);
 
@@ -132,18 +141,21 @@ export function useTracking() {
 
       // Use period-based metrics for more responsive cognitive load calculation
       // This reflects current activity instead of session-wide averages
-      const periodSpeed = intervalKeystrokesRef.current > 0 
-        ? Math.round((intervalKeystrokesRef.current / 5) * 12) // keystrokes per minute in this period
+      const periodSpeed = intervalKeystrokesRef.current > 0
+        ? intervalKeystrokesRef.current
         : 0;
       const periodBRate = intervalKeystrokesRef.current > 0
         ? Math.round((intervalBackspacesRef.current / intervalKeystrokesRef.current) * 100)
         : 0;
 
-      // Normalize period typing speed so cognitive load has meaningful variance on chart.
-      const normalizedSpeedForLoad = Math.round(periodSpeed * 0.25);
-
       // Calculate cognitive load based on current period activity
-      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, normalizedSpeedForLoad);
+      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+      console.log("Cognitive debug", {
+        backspaceCount: intervalBackspacesRef.current,
+        idleTime: Number(idleSec.toFixed(2)),
+        typingSpeed: periodSpeed,
+        cognitiveLoad: Math.round(load),
+      });
       const focus = detectFocusState(periodSpeed, periodBRate, idleSec);
       const fScore = calculateFocusScore(typingTimeRef.current, sessionMs);
       const prod = calculateProductivity(fScore, periodBRate);
