@@ -11,6 +11,11 @@ import { getTodayKey } from "@/utils/storage";
 import { auth } from "@/firebase/config";
 import { saveSession } from "@/firebase/sessions";
 
+const GRAPH_UPDATE_INTERVAL_MS = 5000;
+const AUTO_SAVE_INTERVAL_MS = 60000;
+const MIN_TYPING_BEFORE_SAVE_MS = 30000;
+const SESSION_SAVED_EVENT = "mindpulse:session-saved";
+
 export interface TrackingState {
   totalKeystrokes: number;
   backspaceCount: number;
@@ -50,6 +55,8 @@ export function useTracking() {
   const cognitiveLoadsRef = useRef<number[]>([]);
   const intervalKeystrokesRef = useRef(0);
   const intervalBackspacesRef = useRef(0);
+  const lastSavedAtRef = useRef(0);
+  const hasStartedTypingRef = useRef(false);
 
   const handleKeyDown = useCallback((key: string) => {
     const now = Date.now();
@@ -63,12 +70,56 @@ export function useTracking() {
     lastKeypressRef.current = now;
     keystrokesRef.current++;
     intervalKeystrokesRef.current++;
+    hasStartedTypingRef.current = true;
 
     if (key === "Backspace") {
       backspacesRef.current++;
       intervalBackspacesRef.current++;
     }
   }, []);
+
+  const emitSessionSaved = useCallback((userId: string) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent(SESSION_SAVED_EVENT, {
+        detail: { userId },
+      })
+    );
+  }, []);
+
+  const persistSessionData = useCallback((sessionSec: number, focusScore: number, productivity: number) => {
+    const userId = auth?.currentUser?.uid;
+    if (!userId) {
+      return;
+    }
+
+    if (typingTimeRef.current < MIN_TYPING_BEFORE_SAVE_MS) {
+      return;
+    }
+
+    const avgLoad = cognitiveLoadsRef.current.length > 0
+      ? cognitiveLoadsRef.current.reduce((a, b) => a + b, 0) / cognitiveLoadsRef.current.length
+      : 0;
+
+    void saveSession(userId, {
+      date: getTodayKey(),
+      avgCognitiveLoad: Math.round(avgLoad),
+      focusScore,
+      productivity,
+      backspaceRate: keystrokesRef.current > 0
+        ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+        : 0,
+      sessionDuration: Math.max(0, Math.round(sessionSec)),
+    }).then(() => {
+      lastSavedAtRef.current = Date.now();
+      emitSessionSaved(userId);
+    }).catch(() => {
+      // Silent fail to avoid interrupting tracking UI on transient network issues.
+    });
+  }, [emitSessionSaved]);
 
   // Update stats every 5 seconds
   useEffect(() => {
@@ -88,16 +139,19 @@ export function useTracking() {
         ? Math.round((intervalBackspacesRef.current / intervalKeystrokesRef.current) * 100)
         : 0;
 
+      // Normalize period typing speed so cognitive load has meaningful variance on chart.
+      const normalizedSpeedForLoad = Math.round(periodSpeed * 0.25);
+
       // Calculate cognitive load based on current period activity
-      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, normalizedSpeedForLoad);
       const focus = detectFocusState(periodSpeed, periodBRate, idleSec);
       const fScore = calculateFocusScore(typingTimeRef.current, sessionMs);
       const prod = calculateProductivity(fScore, periodBRate);
       const insight = getInsightMessage(focus, periodBRate, idleSec, load);
       const nextPoint = { time: Math.round(sessionSec), load: Math.round(load) };
-      
-      // Add to graph if there's been any typing activity in this period or overall
-      const hasTypingActivity = intervalKeystrokesRef.current > 0 || keystrokesRef.current > 0;
+
+      // Once typing starts, keep appending every 5s so the graph reflects current values.
+      const shouldAppendGraphPoint = hasStartedTypingRef.current;
 
       cognitiveLoadsRef.current.push(load);
 
@@ -115,7 +169,7 @@ export function useTracking() {
           : 0,
         sessionDuration: Math.round(sessionSec),
         insight,
-        graphData: hasTypingActivity
+        graphData: shouldAppendGraphPoint
           ? [...prev.graphData, nextPoint].slice(-120)
           : prev.graphData,
       }));
@@ -124,30 +178,34 @@ export function useTracking() {
       intervalKeystrokesRef.current = 0;
       intervalBackspacesRef.current = 0;
 
-      // Auto-save session
-      const avgLoad = cognitiveLoadsRef.current.length > 0
-        ? cognitiveLoadsRef.current.reduce((a, b) => a + b, 0) / cognitiveLoadsRef.current.length
-        : 0;
-
-      const userId = auth?.currentUser?.uid;
-      if (userId) {
-        void saveSession(userId, {
-          date: getTodayKey(),
-          avgCognitiveLoad: Math.round(avgLoad),
-          focusScore: fScore,
-          productivity: prod,
-          backspaceRate: keystrokesRef.current > 0
-            ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
-            : 0,
-          sessionDuration: Math.round(sessionSec),
-        }).catch(() => {
-          // Silent fail to avoid interrupting tracking UI on transient network issues.
-        });
+      // Save every 60 seconds once minimum typing time threshold is met.
+      if (now - lastSavedAtRef.current >= AUTO_SAVE_INTERVAL_MS) {
+        persistSessionData(sessionSec, fScore, prod);
       }
-    }, 5000);
+    }, GRAPH_UPDATE_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [persistSessionData]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const now = Date.now();
+      const sessionSec = (now - sessionStartRef.current) / 1000;
+      const fScore = calculateFocusScore(typingTimeRef.current, now - sessionStartRef.current);
+      const totalBackspaceRate = keystrokesRef.current > 0
+        ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+        : 0;
+      const prod = calculateProductivity(fScore, totalBackspaceRate);
+
+      persistSessionData(sessionSec, fScore, prod);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [persistSessionData]);
 
   return { state, handleKeyDown };
 }

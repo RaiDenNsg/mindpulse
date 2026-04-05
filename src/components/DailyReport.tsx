@@ -4,15 +4,20 @@ import { subscribeToAuthState } from "@/firebase/auth";
 import { getUserSessions, getYesterdaySession } from "@/firebase/sessions";
 import { getTodayKey, getYesterdayKey, type SessionData } from "@/utils/storage";
 
+const SESSION_SAVED_EVENT = "mindpulse:session-saved";
+
 export default function DailyReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionsByDate, setSessionsByDate] = useState<Record<string, SessionData>>({});
   const [cachedYesterdaySession, setCachedYesterdaySession] = useState<SessionData | null>(null);
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
     const loadSessions = async (userId: string | null | undefined) => {
+      setActiveUserId(userId ?? null);
+
       if (!userId) {
         if (active) {
           setSessionsByDate({});
@@ -79,11 +84,25 @@ export default function DailyReport() {
       void loadSessions(nextUser?.uid);
     });
 
+    const handleSessionSaved = (event: Event) => {
+      const customEvent = event as CustomEvent<{ userId?: string }>;
+      const savedUserId = customEvent.detail?.userId;
+
+      if (!savedUserId || savedUserId !== activeUserId) {
+        return;
+      }
+
+      void loadSessions(savedUserId);
+    };
+
+    window.addEventListener(SESSION_SAVED_EVENT, handleSessionSaved);
+
     return () => {
       active = false;
       unsubscribe();
+      window.removeEventListener(SESSION_SAVED_EVENT, handleSessionSaved);
     };
-  }, []);
+  }, [activeUserId]);
 
   if (isLoading) {
     return (
