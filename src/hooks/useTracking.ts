@@ -85,6 +85,12 @@ export interface TrackingState {
   sessionDuration: number;
   insight: string;
   graphData: Array<{ time: number; load: number }>;
+  debugMetrics: {
+    backspaceCount: number;
+    idleTime: number;
+    typingSpeed: number;
+    cognitiveLoad: number;
+  };
 }
 
 export function useTracking() {
@@ -103,6 +109,12 @@ export function useTracking() {
     sessionDuration: 0,
     insight: "Start typing to begin tracking 🎯",
     graphData: initialGraphData,
+    debugMetrics: {
+      backspaceCount: 0,
+      idleTime: 0,
+      typingSpeed: 0,
+      cognitiveLoad: 0,
+    },
   });
 
   const keystrokesRef = useRef(0);
@@ -263,6 +275,12 @@ export function useTracking() {
           sessionDuration: Math.round(sessionSec),
           insight,
           graphData: nextGraphData,
+          debugMetrics: {
+            backspaceCount: intervalBackspacesRef.current,
+            idleTime: Number(idleSec.toFixed(2)),
+            typingSpeed: periodSpeed,
+            cognitiveLoad: Math.round(load),
+          },
         };
       });
 

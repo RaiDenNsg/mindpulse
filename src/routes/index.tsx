@@ -67,6 +67,16 @@ function Dashboard() {
           </div>
         </div>
       </main>
+
+      {import.meta.env.DEV && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg border border-border/60 bg-background/90 px-3 py-2 text-[11px] font-mono shadow-lg backdrop-blur">
+          <p className="text-muted-foreground">Debug</p>
+          <p className="text-foreground">bsp: {state.debugMetrics.backspaceCount}</p>
+          <p className="text-foreground">idle: {state.debugMetrics.idleTime}s</p>
+          <p className="text-foreground">speed: {state.debugMetrics.typingSpeed}</p>
+          <p className="text-foreground">load: {state.debugMetrics.cognitiveLoad}</p>
+        </div>
+      )}
     </div>
   );
 }
