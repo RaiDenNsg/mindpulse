@@ -1,15 +1,91 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { getSession, getTodayKey, getYesterdayKey, getStreak, getLastNDaysSessions } from "@/utils/storage";
+import { subscribeToAuthState } from "@/firebase/auth";
+import { getUserSessions, getYesterdaySession } from "@/firebase/sessions";
+import { getTodayKey, getYesterdayKey, type SessionData } from "@/utils/storage";
 
 export default function DailyReport() {
-  const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionsByDate, setSessionsByDate] = useState<Record<string, SessionData>>({});
+  const [cachedYesterdaySession, setCachedYesterdaySession] = useState<SessionData | null>(null);
 
   useEffect(() => {
-    setIsClient(true);
+    let active = true;
+
+    const loadSessions = async (userId: string | null | undefined) => {
+      if (!userId) {
+        if (active) {
+          setSessionsByDate({});
+          setCachedYesterdaySession(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const [allSessions, yesterdaySession] = await Promise.all([
+          getUserSessions(userId),
+          getYesterdaySession(userId),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        const mapped: Record<string, SessionData> = {};
+        allSessions.forEach((session) => {
+          if (!session.date) {
+            return;
+          }
+
+          mapped[session.date] = {
+            date: session.date,
+            avgCognitiveLoad: Number(session.avgCognitiveLoad ?? 0),
+            focusScore: Number(session.focusScore ?? 0),
+            productivity: Number(session.productivity ?? 0),
+            backspaceRate: Number(session.backspaceRate ?? 0),
+            sessionDuration: Number(session.sessionDuration ?? 0),
+          };
+        });
+
+        setSessionsByDate(mapped);
+        setCachedYesterdaySession(
+          yesterdaySession
+            ? {
+              date: String(yesterdaySession.date ?? getYesterdayKey()),
+              avgCognitiveLoad: Number(yesterdaySession.avgCognitiveLoad ?? 0),
+              focusScore: Number(yesterdaySession.focusScore ?? 0),
+              productivity: Number(yesterdaySession.productivity ?? 0),
+              backspaceRate: Number(yesterdaySession.backspaceRate ?? 0),
+              sessionDuration: Number(yesterdaySession.sessionDuration ?? 0),
+            }
+            : null
+        );
+      } catch {
+        if (active) {
+          setSessionsByDate({});
+          setCachedYesterdaySession(null);
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    const unsubscribe = subscribeToAuthState((nextUser) => {
+      void loadSessions(nextUser?.uid);
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
-  if (!isClient) {
+  if (isLoading) {
     return (
       <div className="glass-card p-6 fade-in">
         <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
@@ -20,14 +96,40 @@ export default function DailyReport() {
     );
   }
 
-  return <DailyReportContent />;
+  return <DailyReportContent sessionsByDate={sessionsByDate} cachedYesterdaySession={cachedYesterdaySession} />;
 }
 
-function DailyReportContent() {
-  const today = getSession(getTodayKey());
-  const yesterday = getSession(getYesterdayKey());
-  const streak = getStreak();
-  const sevenDaySessions = getLastNDaysSessions(7);
+function DailyReportContent({
+  sessionsByDate,
+  cachedYesterdaySession,
+}: {
+  sessionsByDate: Record<string, SessionData>;
+  cachedYesterdaySession: SessionData | null;
+}) {
+  const todayKey = getTodayKey();
+  const yesterdayKey = getYesterdayKey();
+  const today = sessionsByDate[todayKey] ?? null;
+  const yesterday = sessionsByDate[yesterdayKey] ?? cachedYesterdaySession;
+
+  let streak = 0;
+  const streakCursor = new Date();
+  while (true) {
+    const key = streakCursor.toISOString().split("T")[0];
+    if (sessionsByDate[key]) {
+      streak += 1;
+      streakCursor.setDate(streakCursor.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  const sevenDaySessions: Array<{ date: string; session: SessionData | null }> = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    sevenDaySessions.push({ date: key, session: sessionsByDate[key] ?? null });
+  }
 
   const clampMetric = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
   const safeMetric = (value?: number) => clampMetric(value ?? 0);

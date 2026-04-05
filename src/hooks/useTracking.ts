@@ -7,7 +7,9 @@ import {
   getInsightMessage,
   type FocusState,
 } from "@/utils/cognitiveLogic";
-import { saveSession, getTodayKey } from "@/utils/storage";
+import { getTodayKey } from "@/utils/storage";
+import { auth } from "@/firebase/config";
+import { saveSession } from "@/firebase/sessions";
 
 export interface TrackingState {
   totalKeystrokes: number;
@@ -127,16 +129,21 @@ export function useTracking() {
         ? cognitiveLoadsRef.current.reduce((a, b) => a + b, 0) / cognitiveLoadsRef.current.length
         : 0;
 
-      saveSession({
-        date: getTodayKey(),
-        avgCognitiveLoad: Math.round(avgLoad),
-        focusScore: fScore,
-        productivity: prod,
-        backspaceRate: keystrokesRef.current > 0
-          ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
-          : 0,
-        sessionDuration: Math.round(sessionSec),
-      });
+      const userId = auth?.currentUser?.uid;
+      if (userId) {
+        void saveSession(userId, {
+          date: getTodayKey(),
+          avgCognitiveLoad: Math.round(avgLoad),
+          focusScore: fScore,
+          productivity: prod,
+          backspaceRate: keystrokesRef.current > 0
+            ? Math.round((backspacesRef.current / keystrokesRef.current) * 100)
+            : 0,
+          sessionDuration: Math.round(sessionSec),
+        }).catch(() => {
+          // Silent fail to avoid interrupting tracking UI on transient network issues.
+        });
+      }
     }, 5000);
 
     return () => clearInterval(interval);
