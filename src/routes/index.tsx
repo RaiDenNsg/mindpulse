@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTracking } from "@/hooks/useTracking";
 import CodeEditor from "@/components/CodeEditor";
 import CognitiveGraph from "@/components/CognitiveGraph";
@@ -49,6 +49,12 @@ function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge focusState={state.focusState} />
+            <Link
+              to="/history"
+              className="px-2.5 py-1 text-xs rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              History
+            </Link>
             <button
               type="button"
               onClick={() => {
