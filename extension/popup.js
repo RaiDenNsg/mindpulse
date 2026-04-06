@@ -7,6 +7,7 @@ const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
 
 const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
 const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
+const FIREBASE_SIGN_IN_WITH_IDP_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${FIREBASE_API_KEY}`;
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 function getFirestoreUserSessionsUrl(userId) {
@@ -88,6 +89,32 @@ function setAuthUI(user) {
   }
 }
 
+async function signInFirebaseWithGoogleToken(token) {
+  // chrome.identity.getAuthToken returns a Google access token.
+  // Equivalent to signInWithCredential(GoogleAuthProvider.credential(null, token)).
+  const postBody = `access_token=${encodeURIComponent(token)}&providerId=google.com`;
+
+  const response = await fetch(FIREBASE_SIGN_IN_WITH_IDP_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      postBody,
+      requestUri: `https://${chrome.runtime.id}.chromiumapp.org/`,
+      returnSecureToken: true,
+      returnIdpCredential: true,
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error?.message || 'Failed to sign in with Firebase Auth');
+  }
+
+  return data;
+}
+
 async function fetchGoogleProfile(token) {
   const response = await fetch(GOOGLE_USERINFO_URL, {
     headers: {
@@ -102,36 +129,55 @@ async function fetchGoogleProfile(token) {
   return response.json();
 }
 
-async function signInWithGoogle() {
+async function signInWithGoogle(interactive = true) {
   const signInBtn = document.getElementById('signInBtn');
   const originalText = signInBtn.textContent;
 
   try {
-    signInBtn.disabled = true;
-    signInBtn.textContent = 'Signing in...';
+    if (interactive) {
+      signInBtn.disabled = true;
+      signInBtn.textContent = 'Signing in...';
+    }
 
-    const token = await getAuthToken(true);
-    const profile = await fetchGoogleProfile(token);
+    const token = await getAuthToken(interactive);
+    const [firebaseAuthResult, profile] = await Promise.all([
+      signInFirebaseWithGoogleToken(token),
+      fetchGoogleProfile(token).catch(() => null),
+    ]);
+
+    // Firebase UID (localId) matches the web app's auth.uid.
+    const firebaseUid = firebaseAuthResult.localId;
+    if (!firebaseUid) {
+      throw new Error('Firebase auth uid was not returned');
+    }
 
     const authUser = {
-      userId: profile.sub,
-      email: profile.email || '',
-      name: profile.name || ''
+      userId: firebaseUid,
+      email: profile?.email || firebaseAuthResult.email || '',
+      name: profile?.name || firebaseAuthResult.displayName || ''
     };
+
+    console.log('[MindPulse Auth] Google token exchanged for Firebase uid:', firebaseUid);
 
     await storageSet({ [AUTH_STORAGE_KEY]: authUser });
     currentUser = authUser;
     setAuthUI(currentUser);
   } catch (error) {
-    console.error('Google sign-in failed:', error);
-    signInBtn.textContent = 'Sign-in Failed';
-    setTimeout(() => {
-      signInBtn.textContent = originalText;
-    }, 1500);
+    if (interactive) {
+      console.error('Google sign-in failed:', error);
+      signInBtn.textContent = 'Sign-in Failed';
+      setTimeout(() => {
+        signInBtn.textContent = originalText;
+      }, 1500);
+    } else {
+      console.log('[MindPulse Auth] Silent sign-in unavailable:', error?.message || error);
+    }
   } finally {
-    signInBtn.disabled = false;
-    if (!currentUser) {
-      signInBtn.textContent = originalText;
+    if (interactive) {
+      signInBtn.disabled = false;
+      if (!currentUser) {
+        signInBtn.textContent = originalText;
+      }
     }
   }
 }
@@ -152,6 +198,11 @@ async function initializeAuthState() {
   const stored = await storageGet([AUTH_STORAGE_KEY]);
   currentUser = stored[AUTH_STORAGE_KEY] || null;
   setAuthUI(currentUser);
+
+  // Auto sign-in on popup open using cached token when available.
+  if (!currentUser?.userId) {
+    await signInWithGoogle(false);
+  }
 }
 
 // Request session data from content script
@@ -318,7 +369,9 @@ async function resetSession() {
 
 // Event listeners
 document.getElementById('resetBtn').addEventListener('click', resetSession);
-document.getElementById('signInBtn').addEventListener('click', signInWithGoogle);
+document.getElementById('signInBtn').addEventListener('click', () => {
+  void signInWithGoogle(true);
+});
 document.getElementById('signOutBtn').addEventListener('click', signOutGoogle);
 
 document.getElementById('syncBtn').addEventListener('click', async () => {
