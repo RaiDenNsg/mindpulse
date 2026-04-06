@@ -5,7 +5,10 @@ export function calculateCognitiveLoad(
   idleTime: number,
   typingSpeed: number
 ): number {
-  const raw = (backspaceCount * 1.5) + (idleTime * 0.5) - (typingSpeed * 0.8);
+  // Reweighted formula to prevent 0 values during normal typing
+  // typingSpeed is normalized (divide by 50 to scale from absolute keystrokes to ~0-2 range)
+  const normalizedSpeed = Math.max(0, Math.min(2, typingSpeed / 50));
+  const raw = (backspaceCount * 3) + (idleTime * 2) - (normalizedSpeed * 5);
   return Math.max(0, Math.min(60, Math.round(raw)));
 }
 
@@ -22,8 +25,12 @@ export function detectFocusState(
 }
 
 export function calculateFocusScore(typingTime: number, totalTime: number): number {
+  // Focus score: percentage of time actively typing (not idle)
+  // If idle time is > totalTime, focus score should be 0
   if (totalTime === 0) return 0;
-  const rawScore = Math.round((typingTime / totalTime) * 100);
+  // Only count actual active typing time, ensure it doesn't exceed total time
+  const activeTime = Math.min(typingTime, totalTime);
+  const rawScore = Math.round((activeTime / totalTime) * 100);
   return Math.max(0, Math.min(100, rawScore));
 }
 

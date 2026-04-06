@@ -6,15 +6,7 @@ import { getTodayKey, getYesterdayKey, type SessionData } from "@/utils/storage"
 
 const SESSION_SAVED_EVENT = "mindpulse:session-saved";
 
-interface DailyReportLiveSession {
-  avgCognitiveLoad: number;
-  focusScore: number;
-  productivity: number;
-  backspaceRate: number;
-  sessionDuration: number;
-}
-
-export default function DailyReport({ liveSession }: { liveSession?: DailyReportLiveSession | null }) {
+export default function DailyReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionsByDate, setSessionsByDate] = useState<Record<string, SessionData>>({});
   const [cachedYesterdaySession, setCachedYesterdaySession] = useState<SessionData | null>(null);
@@ -131,7 +123,6 @@ export default function DailyReport({ liveSession }: { liveSession?: DailyReport
     <DailyReportContent
       sessionsByDate={sessionsByDate}
       cachedYesterdaySession={cachedYesterdaySession}
-      liveSession={liveSession}
     />
   );
 }
@@ -139,26 +130,14 @@ export default function DailyReport({ liveSession }: { liveSession?: DailyReport
 function DailyReportContent({
   sessionsByDate,
   cachedYesterdaySession,
-  liveSession,
 }: {
   sessionsByDate: Record<string, SessionData>;
   cachedYesterdaySession: SessionData | null;
-  liveSession?: DailyReportLiveSession | null;
 }) {
   const todayKey = getTodayKey();
   const yesterdayKey = getYesterdayKey();
   const savedToday = sessionsByDate[todayKey] ?? null;
-  const liveToday: SessionData | null = liveSession
-    ? {
-      date: todayKey,
-      avgCognitiveLoad: Number(liveSession.avgCognitiveLoad ?? 0),
-      focusScore: Number(liveSession.focusScore ?? 0),
-      productivity: Number(liveSession.productivity ?? 0),
-      backspaceRate: Number(liveSession.backspaceRate ?? 0),
-      sessionDuration: Number(liveSession.sessionDuration ?? 0),
-    }
-    : null;
-  const today = savedToday ?? liveToday;
+  const today = savedToday;
   const yesterday = sessionsByDate[yesterdayKey] ?? cachedYesterdaySession;
   const hasPreviousSession = Boolean(yesterday);
 
@@ -179,7 +158,7 @@ function DailyReportContent({
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = d.toISOString().split("T")[0];
-    const sessionForDay = key === todayKey ? (savedToday ?? liveToday) : (sessionsByDate[key] ?? null);
+    const sessionForDay = key === todayKey ? savedToday : (sessionsByDate[key] ?? null);
     sevenDaySessions.push({ date: key, session: sessionForDay });
   }
 
