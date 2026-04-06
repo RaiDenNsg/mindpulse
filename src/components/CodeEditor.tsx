@@ -134,7 +134,7 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
       </div>
       {mounted && MonacoEditor ? (
         <MonacoEditor
-          height="400px"
+          height="min(56vh, 400px)"
           defaultLanguage="javascript"
           value={code}
           onChange={(value) => {
@@ -164,9 +164,9 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
       ) : (
         <EditorFallback />
       )}
-      <div className="px-4 pb-4 pt-3 border-t border-border bg-[#0f0f0f]">
+      <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pt-3 border-t border-border bg-[#0f0f0f]">
         <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground mb-2">Output</p>
-        <div className="rounded-md border border-border bg-[#0a0a0a] p-3 min-h-[120px] font-mono text-sm overflow-auto">
+        <div className="rounded-md border border-border bg-[#0a0a0a] p-3 min-h-[96px] sm:min-h-[120px] font-mono text-sm overflow-auto">
           {output.length === 0 ? (
             <p className="text-muted-foreground">Output will appear here...</p>
           ) : (

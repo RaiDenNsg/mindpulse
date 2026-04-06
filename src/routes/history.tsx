@@ -308,7 +308,7 @@ function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 sm:px-6 xl:px-10 py-4">
+      <header className="border-b border-border px-4 sm:px-6 xl:px-10 py-3.5 sm:py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center">
@@ -321,15 +321,15 @@ function HistoryPage() {
           </div>
           <Link
             to="/"
-            className="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="px-2.5 sm:px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             Back to Dashboard
           </Link>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-7 space-y-7">
-        <section className="flex flex-wrap items-end gap-x-8 gap-y-4 pb-1 border-b border-border/70">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-6 sm:py-7 space-y-6 sm:space-y-7">
+        <section className="flex flex-wrap items-end gap-x-5 sm:gap-x-8 gap-y-3 sm:gap-y-4 pb-1 border-b border-border/70">
           <div className="metric-inline">
             <p className="metric-inline-value">{overallStats.totalSessions}</p>
             <p className="metric-inline-label">Total Sessions</p>
@@ -349,8 +349,8 @@ function HistoryPage() {
         </section>
 
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-[0.1em]">7-Day Focus Trend</h3>
-          <div className="h-[240px]">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3 sm:mb-4 uppercase tracking-[0.1em]">7-Day Focus Trend</h3>
+          <div className="h-[210px] sm:h-[240px]">
             {!hasSevenDayPoints ? (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
                 Not enough data for trend yet.
@@ -385,10 +385,10 @@ function HistoryPage() {
           </div>
         </section>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border/70 pb-2">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Sessions</h3>
-            <div className="inline-flex items-center gap-5">
+            <div className="inline-flex items-center gap-3 sm:gap-5">
               <button
                 type="button"
                 onClick={() => setSourceFilter("all")}
@@ -436,17 +436,17 @@ function HistoryPage() {
               return (
                 <article
                   key={session.id || `${session.date}-${session.focusScore}`}
-                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-4 py-4 hover:bg-accent/35 transition-colors`}
+                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-3.5 sm:px-4 py-3.5 sm:py-4 hover:bg-accent/35 transition-colors`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">{formatSessionDate(session.date)}</p>
-                      <p className="text-lg font-semibold text-foreground mt-1">{getSessionTitle(session)}</p>
+                      <p className="text-base sm:text-lg font-semibold text-foreground mt-1">{getSessionTitle(session)}</p>
                     </div>
                     <span className={`text-[11px] px-2 py-0.5 rounded-md border ${tone.badge}`}>{tone.label}</span>
                   </div>
 
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 border-t border-border/60 pt-3">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mt-3.5 sm:mt-4 border-t border-border/60 pt-3">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Focus Score</p>
                       <p className="text-lg font-semibold text-foreground mt-1">{Math.round(session.focusScore)}</p>

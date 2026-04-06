@@ -31,7 +31,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 sm:px-6 xl:px-10 py-4">
+      <header className="border-b border-border px-4 sm:px-6 xl:px-10 py-3.5 sm:py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center">
@@ -42,8 +42,10 @@ function Dashboard() {
               <span className="text-[11px] text-muted-foreground tracking-[0.12em] uppercase hidden sm:inline">Cognitive Intelligence</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <StatusBadge focusState={state.focusState} />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:block">
+              <StatusBadge focusState={state.focusState} />
+            </div>
             <Link
               to="/history"
               className="px-3 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
@@ -63,7 +65,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-7 space-y-6">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-6 sm:py-7 space-y-5 sm:space-y-6">
         <CodeEditor onKeyDown={handleKeyDown} />
         <StatsPanel
           typingSpeed={state.typingSpeed}
@@ -73,7 +75,7 @@ function Dashboard() {
           sessionDuration={state.sessionDuration}
         />
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)] gap-5 xl:gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)] gap-4 sm:gap-5 xl:gap-6">
           <div className="fade-in fade-in-delay-2 min-w-0">
             <CognitiveGraph data={state.graphData} />
           </div>

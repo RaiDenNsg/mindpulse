@@ -8,7 +8,7 @@ function StatItem({ label, value, unit }: StatItemProps) {
   const displayValue = unit ? `${value}${unit}` : String(value);
 
   return (
-    <div className="metric-inline min-w-[130px]">
+    <div className="metric-inline min-w-[118px] sm:min-w-[130px]">
       <p className="metric-inline-value text-foreground">{displayValue}</p>
       <p className="metric-inline-label">{label}</p>
     </div>
@@ -38,15 +38,15 @@ export default function StatsPanel({
 
   return (
     <section className="glass-card fade-in fade-in-delay-1">
-      <div className="flex items-center gap-4 md:gap-7 overflow-x-auto px-4 py-3">
+      <div className="flex flex-wrap md:flex-nowrap items-center gap-3 md:gap-7 px-3 sm:px-4 py-3">
         <StatItem label="Session" value={formatDuration(sessionDuration)} />
-        <div className="h-6 w-px bg-border shrink-0" />
+        <div className="hidden md:block h-6 w-px bg-border shrink-0" />
         <StatItem label="Typing Speed" value={typingSpeed} unit=" wpm" />
-        <div className="h-6 w-px bg-border shrink-0" />
+        <div className="hidden md:block h-6 w-px bg-border shrink-0" />
         <StatItem label="Focus Score" value={focusScore} unit="%" />
-        <div className="h-6 w-px bg-border shrink-0" />
+        <div className="hidden md:block h-6 w-px bg-border shrink-0" />
         <StatItem label="Cognitive Load" value={cognitiveLoad} unit="/60" />
-        <div className="h-6 w-px bg-border shrink-0" />
+        <div className="hidden md:block h-6 w-px bg-border shrink-0" />
         <StatItem label="Backspace Rate" value={backspaceRate} unit="%" />
       </div>
     </section>
