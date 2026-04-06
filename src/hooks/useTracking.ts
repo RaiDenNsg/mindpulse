@@ -94,7 +94,10 @@ export interface TrackingState {
 }
 
 export function useTracking() {
-  const initialGraphData = loadPersistedGraphData();
+  // Always start with empty graph on mount - no stale data from previous sessions
+  // Previous session data is preserved in Firestore (Daily Report, History)
+  // Graph persistence is only for mid-session refreshes (current session data)
+  const initialGraphData: GraphPoint[] = [];
 
   const [state, setState] = useState<TrackingState>({
     totalKeystrokes: 0,
