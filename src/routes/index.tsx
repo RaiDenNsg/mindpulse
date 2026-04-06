@@ -48,7 +48,7 @@ function Dashboard() {
             </div>
             <Link
               to="/history"
-              className="px-3 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
             >
               History
             </Link>
@@ -57,7 +57,7 @@ function Dashboard() {
               onClick={() => {
                 void handleSignOut();
               }}
-              className="px-3 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
             >
               Sign out
             </button>

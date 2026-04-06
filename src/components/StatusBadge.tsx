@@ -16,7 +16,7 @@ export default function StatusBadge({ focusState }: StatusBadgeProps) {
     : "bg-muted-foreground";
 
   return (
-    <div className="status-badge px-3 py-1.5 rounded-md flex items-center gap-2 fade-in fade-in-delay-1">
+    <div className="status-badge px-3.5 py-2 rounded-md flex items-center gap-2.5 fade-in fade-in-delay-1">
       <span className={`status-dot w-2.5 h-2.5 rounded-full ${dotColor} pulse-dot`} />
       <span className={`text-xs font-medium tracking-tight ${colorClass}`}>
         {focusState}

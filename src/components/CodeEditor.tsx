@@ -127,7 +127,7 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
         <button
           type="button"
           onClick={runCode}
-          className="px-2.5 py-1 rounded-md border border-border text-xs font-medium text-foreground hover:bg-accent transition-colors duration-150"
+          className="px-3 py-1.5 rounded-md border border-border text-xs font-medium text-foreground hover:bg-accent transition-colors duration-150"
         >
           Run
         </button>

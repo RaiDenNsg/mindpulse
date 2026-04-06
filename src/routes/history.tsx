@@ -321,7 +321,7 @@ function HistoryPage() {
           </div>
           <Link
             to="/"
-            className="px-2.5 sm:px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="px-3.5 py-2 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             Back to Dashboard
           </Link>
@@ -392,7 +392,7 @@ function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setSourceFilter("all")}
-                className={`pb-1 text-xs border-b transition-colors ${
+                className={`px-0.5 py-1.5 text-xs border-b transition-colors ${
                   sourceFilter === "all"
                     ? "text-foreground border-primary"
                     : "text-muted-foreground border-transparent hover:text-foreground"
@@ -403,7 +403,7 @@ function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setSourceFilter("web")}
-                className={`pb-1 text-xs border-b transition-colors ${
+                className={`px-0.5 py-1.5 text-xs border-b transition-colors ${
                   sourceFilter === "web"
                     ? "text-foreground border-primary"
                     : "text-muted-foreground border-transparent hover:text-foreground"
@@ -414,7 +414,7 @@ function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setSourceFilter("extension")}
-                className={`pb-1 text-xs border-b transition-colors ${
+                className={`px-0.5 py-1.5 text-xs border-b transition-colors ${
                   sourceFilter === "extension"
                     ? "text-foreground border-primary"
                     : "text-muted-foreground border-transparent hover:text-foreground"
@@ -436,7 +436,7 @@ function HistoryPage() {
               return (
                 <article
                   key={session.id || `${session.date}-${session.focusScore}`}
-                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-3.5 sm:px-4 py-3.5 sm:py-4 hover:bg-accent/35 transition-colors`}
+                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-4 sm:px-4.5 py-4 sm:py-4.5 hover:bg-accent/35 transition-colors`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
