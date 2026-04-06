@@ -8,6 +8,14 @@
     "storage",
     "identity"
   ],
+  "oauth2": {
+    "client_id": "REPLACE_WITH_EXTENSION_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ]
+  },
   "host_permissions": [
     "https://leetcode.com/*",
     "https://www.leetcode.com/*",
@@ -15,7 +23,8 @@
     "https://www.hackerrank.com/*",
     "https://programiz.com/*",
     "https://www.programiz.com/*",
-    "https://firestore.googleapis.com/*"
+    "https://firestore.googleapis.com/*",
+    "https://www.googleapis.com/*"
   ],
   "content_scripts": [
     {

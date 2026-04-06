@@ -1,15 +1,154 @@
 // MindPulse Tracker - Popup Script
 
 let currentMetrics = null;
+let currentUser = null;
+
+const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
 
 const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
 const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
 const FIRESTORE_SESSIONS_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/sessions?key=${FIREBASE_API_KEY}`;
+const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 // Get the current active tab
 async function getCurrentTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   return tabs[0];
+}
+
+function getAuthToken(interactive) {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive }, (token) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+
+      if (!token) {
+        reject(new Error('No OAuth token received'));
+        return;
+      }
+
+      resolve(token);
+    });
+  });
+}
+
+function removeCachedToken(token) {
+  return new Promise((resolve) => {
+    if (!token) {
+      resolve();
+      return;
+    }
+
+    chrome.identity.removeCachedAuthToken({ token }, () => {
+      resolve();
+    });
+  });
+}
+
+function storageGet(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, resolve);
+  });
+}
+
+function storageSet(value) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(value, resolve);
+  });
+}
+
+function storageRemove(key) {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(key, resolve);
+  });
+}
+
+function setAuthUI(user) {
+  const signInBtn = document.getElementById('signInBtn');
+  const userInfo = document.getElementById('userInfo');
+  const userName = document.getElementById('userName');
+  const userEmail = document.getElementById('userEmail');
+  const syncBtn = document.getElementById('syncBtn');
+
+  if (user && user.userId) {
+    signInBtn.classList.add('hidden');
+    userInfo.classList.remove('hidden');
+    userName.textContent = user.name || 'MindPulse User';
+    userEmail.textContent = user.email || 'Signed in';
+    syncBtn.disabled = currentMetrics ? false : true;
+  } else {
+    signInBtn.classList.remove('hidden');
+    userInfo.classList.add('hidden');
+    syncBtn.disabled = true;
+  }
+}
+
+async function fetchGoogleProfile(token) {
+  const response = await fetch(GOOGLE_USERINFO_URL, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch Google profile');
+  }
+
+  return response.json();
+}
+
+async function signInWithGoogle() {
+  const signInBtn = document.getElementById('signInBtn');
+  const originalText = signInBtn.textContent;
+
+  try {
+    signInBtn.disabled = true;
+    signInBtn.textContent = 'Signing in...';
+
+    const token = await getAuthToken(true);
+    const profile = await fetchGoogleProfile(token);
+
+    const authUser = {
+      userId: profile.sub,
+      email: profile.email || '',
+      name: profile.name || ''
+    };
+
+    await storageSet({ [AUTH_STORAGE_KEY]: authUser });
+    currentUser = authUser;
+    setAuthUI(currentUser);
+  } catch (error) {
+    console.error('Google sign-in failed:', error);
+    signInBtn.textContent = 'Sign-in Failed';
+    setTimeout(() => {
+      signInBtn.textContent = originalText;
+    }, 1500);
+  } finally {
+    signInBtn.disabled = false;
+    if (!currentUser) {
+      signInBtn.textContent = originalText;
+    }
+  }
+}
+
+async function signOutGoogle() {
+  try {
+    const token = await getAuthToken(false).catch(() => null);
+    await removeCachedToken(token);
+    await storageRemove(AUTH_STORAGE_KEY);
+    currentUser = null;
+    setAuthUI(currentUser);
+  } catch (error) {
+    console.error('Sign-out failed:', error);
+  }
+}
+
+async function initializeAuthState() {
+  const stored = await storageGet([AUTH_STORAGE_KEY]);
+  currentUser = stored[AUTH_STORAGE_KEY] || null;
+  setAuthUI(currentUser);
 }
 
 // Request session data from content script
@@ -61,7 +200,7 @@ function updateUI(metrics) {
   document.getElementById('sessionTime').textContent = formatTime(metrics.elapsedSeconds);
   document.getElementById('platformBadge').textContent = metrics.platform;
   document.getElementById('timestamp').textContent = `Last updated: ${formatTimestamp(metrics.timestamp)}`;
-  document.getElementById('syncBtn').disabled = false;
+  document.getElementById('syncBtn').disabled = !currentUser;
 
   // Color code focus score
   const focusEl = document.getElementById('focusScore');
@@ -90,6 +229,7 @@ function toFirestoreDocument(metrics) {
 
   return {
     fields: {
+      userId: { stringValue: currentUser?.userId || '' },
       date: { stringValue: sessionDate },
       keystrokes: { integerValue: String(metrics.keystrokeCount || 0) },
       typingSpeed: { integerValue: String(metrics.typingSpeed || 0) },
@@ -145,9 +285,19 @@ async function resetSession() {
 
 // Event listeners
 document.getElementById('resetBtn').addEventListener('click', resetSession);
+document.getElementById('signInBtn').addEventListener('click', signInWithGoogle);
+document.getElementById('signOutBtn').addEventListener('click', signOutGoogle);
 
 document.getElementById('syncBtn').addEventListener('click', async () => {
   const syncBtn = document.getElementById('syncBtn');
+
+  if (!currentUser?.userId) {
+    syncBtn.textContent = 'Sign in first';
+    setTimeout(() => {
+      syncBtn.textContent = 'Sync to Firebase';
+    }, 1200);
+    return;
+  }
 
   if (!currentMetrics) {
     syncBtn.textContent = 'No Data';
@@ -187,7 +337,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Initial load
-fetchSessionData();
+initializeAuthState().then(fetchSessionData);
 
 // Refresh data every 5 seconds
 setInterval(fetchSessionData, 5000);

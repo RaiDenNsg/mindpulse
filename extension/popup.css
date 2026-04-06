@@ -92,6 +92,42 @@ body {
   font-weight: 500;
 }
 
+.auth-section {
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.user-email {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.btn-compact {
+  flex: 0;
+  padding: 8px 10px;
+  font-size: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
