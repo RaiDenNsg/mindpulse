@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "MindPulse Tracker",
+  "version": "1.0.0",
+  "description": "Track your typing behavior and cognitive load on coding platforms",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "https://www.leetcode.com/*",
+    "https://hackerrank.com/*",
+    "https://www.hackerrank.com/*",
+    "https://programiz.com/*",
+    "https://www.programiz.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*",
+        "https://www.leetcode.com/*",
+        "https://hackerrank.com/*",
+        "https://www.hackerrank.com/*",
+        "https://programiz.com/*",
+        "https://www.programiz.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "MindPulse Tracker"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "images/icon-16.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  }
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindPulse Tracker</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-section">
+        <div class="logo">🧠</div>
+        <div class="title">MindPulse Tracker</div>
+      </div>
+      <div class="platform-badge" id="platformBadge">—</div>
+    </div>
+
+    <div class="status-section">
+      <div class="status-indicator online"></div>
+      <span class="status-text">Connected to MindPulse</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Keystrokes</div>
+        <div class="metric-value" id="keystrokeCount">0</div>
+        <div class="metric-unit">⌨️</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Typing Speed</div>
+        <div class="metric-value" id="typingSpeed">0</div>
+        <div class="metric-unit">WPM</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Focus Score</div>
+        <div class="metric-value" id="focusScore">0</div>
+        <div class="metric-unit">%</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Cognitive Load</div>
+        <div class="metric-value" id="cognitiveLoad">0</div>
+        <div class="metric-unit">%</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Session Time</div>
+        <div class="metric-value" id="sessionTime">0:00</div>
+        <div class="metric-unit">min</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Backspaces</div>
+        <div class="metric-value" id="backspaceCount">0</div>
+        <div class="metric-unit">⌫</div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button id="resetBtn" class="btn btn-secondary">Reset Session</button>
+      <button id="syncBtn" class="btn btn-primary" disabled>Sync to Firebase</button>
+    </div>
+
+    <div class="footer">
+      <div class="timestamp" id="timestamp">Last updated: just now</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
