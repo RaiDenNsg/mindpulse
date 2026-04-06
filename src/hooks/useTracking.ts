@@ -225,6 +225,7 @@ export function useTracking() {
         hasStartedTypingRef.current = false;
         firstKeystrokeTimeRef.current = null;
         previousCognitiveLoadRef.current = 0;
+        sessionStartRef.current = now; // Reset session start time for new day
 
         setState((prev) => ({
           ...prev,
