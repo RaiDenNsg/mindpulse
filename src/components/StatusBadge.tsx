@@ -1,5 +1,5 @@
 import type { FocusState } from "@/utils/cognitiveLogic";
-import { getFocusColor, getFocusGlow } from "@/utils/cognitiveLogic";
+import { getFocusColor } from "@/utils/cognitiveLogic";
 
 interface StatusBadgeProps {
   focusState: FocusState;
@@ -7,7 +7,6 @@ interface StatusBadgeProps {
 
 export default function StatusBadge({ focusState }: StatusBadgeProps) {
   const colorClass = getFocusColor(focusState);
-  const glowClass = getFocusGlow(focusState);
   const dotColor = focusState === "Deep Focus"
     ? "bg-focus-green"
     : focusState === "Struggling"
@@ -17,9 +16,9 @@ export default function StatusBadge({ focusState }: StatusBadgeProps) {
     : "bg-muted-foreground";
 
   return (
-    <div className="glass-card status-badge px-7 py-3 flex items-center gap-3 fade-in fade-in-delay-1 border-l-4 border-l-primary/30">
-      <span className={`status-dot w-3.5 h-3.5 rounded-full ${dotColor} pulse-dot pulse-glow`} />
-      <span className={`text-sm font-bold tracking-tight ${colorClass} ${glowClass} drop-shadow-[0_0_12px_currentColor]`}>
+    <div className="status-badge px-3 py-1.5 rounded-md flex items-center gap-2 fade-in fade-in-delay-1">
+      <span className={`status-dot w-2.5 h-2.5 rounded-full ${dotColor} pulse-dot`} />
+      <span className={`text-xs font-medium tracking-tight ${colorClass}`}>
         {focusState}
       </span>
     </div>

@@ -12,7 +12,7 @@ interface OutputLine {
 
 function EditorFallback() {
   return (
-    <div className="h-[400px] flex items-center justify-center bg-[oklch(0.14_0.01_260)] text-muted-foreground text-sm">
+    <div className="h-[400px] flex items-center justify-center bg-[#0f0f0f] text-muted-foreground text-sm border-b border-border">
       <div className="flex flex-col items-center gap-3">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <span>Loading editor...</span>
@@ -114,14 +114,23 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
   };
 
   return (
-    <div className="glass-card overflow-hidden fade-in">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <div className="flex gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-struggle-red/80" />
-          <span className="w-3 h-3 rounded-full bg-neutral-yellow/80" />
-          <span className="w-3 h-3 rounded-full bg-focus-green/80" />
+    <section className="glass-card overflow-hidden fade-in">
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-border bg-[#101010]">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/60" />
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/45" />
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/35" />
+          </div>
+          <span className="text-[11px] text-muted-foreground ml-1 font-mono">mindpulse.js</span>
         </div>
-        <span className="text-xs text-muted-foreground ml-2 font-mono">mindpulse.js</span>
+        <button
+          type="button"
+          onClick={runCode}
+          className="px-2.5 py-1 rounded-md border border-border text-xs font-medium text-foreground hover:bg-accent transition-colors duration-150"
+        >
+          Run
+        </button>
       </div>
       {mounted && MonacoEditor ? (
         <MonacoEditor
@@ -144,9 +153,9 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
             fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
-            padding: { top: 16 },
+            padding: { top: 14 },
             lineNumbers: "on",
-            renderLineHighlight: "gutter",
+            renderLineHighlight: "line",
             smoothScrolling: true,
             cursorBlinking: "smooth",
             cursorSmoothCaretAnimation: "on",
@@ -155,22 +164,16 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
       ) : (
         <EditorFallback />
       )}
-      <div className="px-4 pb-4 pt-3 border-t border-border space-y-3">
-        <button
-          type="button"
-          onClick={runCode}
-          className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          Run Code
-        </button>
-        <div className="rounded-md border border-border bg-black/90 p-3 min-h-[120px] font-mono text-sm overflow-auto">
+      <div className="px-4 pb-4 pt-3 border-t border-border bg-[#0f0f0f]">
+        <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground mb-2">Output</p>
+        <div className="rounded-md border border-border bg-[#0a0a0a] p-3 min-h-[120px] font-mono text-sm overflow-auto">
           {output.length === 0 ? (
-            <p className="text-emerald-400/70">Output will appear here...</p>
+            <p className="text-muted-foreground">Output will appear here...</p>
           ) : (
             output.map((line, index) => (
               <pre
                 key={`${line.type}-${index}`}
-                className={`whitespace-pre-wrap break-words ${line.type === "error" ? "text-red-400" : "text-emerald-400"}`}
+                className={`whitespace-pre-wrap break-words ${line.type === "error" ? "text-red-400" : "text-foreground"}`}
               >
                 {line.text}
               </pre>
@@ -178,6 +181,6 @@ export default function CodeEditor({ onKeyDown }: CodeEditorProps) {
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

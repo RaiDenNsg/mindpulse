@@ -110,12 +110,12 @@ export default function DailyReport({ sessionDuration = 0 }: { sessionDuration?:
 
   if (isLoading) {
     return (
-      <div className="glass-card p-6 fade-in">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
+      <section className="glass-card p-5 fade-in">
+        <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.1em] mb-3">
           Daily Report
         </h3>
         <p className="text-sm text-muted-foreground">Loading session data...</p>
-      </div>
+      </section>
     );
   }
 
@@ -314,14 +314,14 @@ function DailyReportContent({
   const hasSevenDayData = chartData.some((point) => point.focusScore !== null);
 
   return (
-    <div className="glass-card p-6 fade-in">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+    <section className="glass-card p-5 fade-in">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.1em]">
           Daily Report
         </h3>
         {streak > 0 && (
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-focus-green/10 text-focus-green">
-            🔥 {streak} day streak
+          <span className="text-xs font-medium px-2 py-0.5 rounded-md border border-primary/30 text-primary">
+            {streak} day streak
           </span>
         )}
       </div>
@@ -367,7 +367,7 @@ function DailyReportContent({
           )}
 
           <div className="mt-6 pt-4 border-t border-border/50">
-            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+            <h4 className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.1em] mb-3">
               7-Day Focus Progress
             </h4>
             <div className="h-[170px]">
@@ -378,26 +378,26 @@ function DailyReportContent({
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.3 0.02 260)" />
-                    <XAxis dataKey="day" stroke="oklch(0.5 0.02 260)" fontSize={11} />
-                    <YAxis domain={[0, 100]} stroke="oklch(0.5 0.02 260)" fontSize={11} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.3 0.005 260)" />
+                    <XAxis dataKey="day" stroke="oklch(0.6 0.01 260)" fontSize={11} />
+                    <YAxis domain={[0, 100]} stroke="oklch(0.6 0.01 260)" fontSize={11} />
                     <Tooltip
                       contentStyle={{
-                        background: "oklch(0.18 0.02 260 / 90%)",
-                        border: "1px solid oklch(0.3 0.02 260)",
-                        borderRadius: "8px",
-                        color: "oklch(0.93 0.01 260)",
+                        background: "#111111",
+                        border: "1px solid oklch(0.3 0.005 260)",
+                        borderRadius: "6px",
+                        color: "oklch(0.95 0.005 260)",
                         fontSize: 12,
                       }}
                     />
                     <Line
                       type="monotone"
                       dataKey="focusScore"
-                      stroke="oklch(0.72 0.19 160)"
+                      stroke="oklch(0.72 0.18 158)"
                       strokeWidth={2.2}
                       connectNulls={false}
-                      dot={{ r: 3, fill: "oklch(0.72 0.19 160)" }}
-                      activeDot={{ r: 4, fill: "oklch(0.72 0.19 160)" }}
+                      dot={{ r: 3, fill: "oklch(0.72 0.18 158)" }}
+                      activeDot={{ r: 4, fill: "oklch(0.72 0.18 158)" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -406,6 +406,6 @@ function DailyReportContent({
           </div>
         </>
       )}
-    </div>
+    </section>
   );
 }

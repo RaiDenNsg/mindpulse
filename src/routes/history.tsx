@@ -114,23 +114,23 @@ function getToneStyles(score: number): { card: string; badge: string; label: str
 
   if (tone === "good") {
     return {
-      card: "border-focus-green/30 bg-focus-green/5",
-      badge: "bg-focus-green/12 text-focus-green border-focus-green/30",
+      card: "border-l-primary",
+      badge: "text-primary border-primary/30",
       label: "Good Focus",
     };
   }
 
   if (tone === "avg") {
     return {
-      card: "border-neutral-yellow/30 bg-neutral-yellow/5",
-      badge: "bg-neutral-yellow/12 text-neutral-yellow border-neutral-yellow/30",
+      card: "border-l-border",
+      badge: "text-muted-foreground border-border",
       label: "Average Focus",
     };
   }
 
   return {
-    card: "border-struggle-red/30 bg-struggle-red/5",
-    badge: "bg-struggle-red/12 text-struggle-red border-struggle-red/30",
+    card: "border-l-border",
+    badge: "text-muted-foreground border-border",
     label: "Poor Focus",
   };
 }
@@ -307,54 +307,49 @@ function HistoryPage() {
   const hasSevenDayPoints = sevenDayFocusData.some((point) => point.focusScore !== null);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="pointer-events-none absolute -top-20 -left-24 h-72 w-72 rounded-full bg-primary/12 blur-3xl" />
-      <div className="pointer-events-none absolute top-28 -right-20 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-neutral-yellow/10 blur-3xl" />
-
-      <header className="border-b border-border/40 px-4 sm:px-6 xl:px-10 py-5 backdrop-blur-md bg-background/45 relative z-10">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border px-4 sm:px-6 xl:px-10 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/35 flex items-center justify-center shadow-[0_0_26px_oklch(0.72_0.19_160_/20%)]">
-              <span className="text-primary font-extrabold text-base">M</span>
+            <div className="w-8 h-8 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center">
+              <span className="text-primary font-semibold text-sm">M</span>
             </div>
             <div>
-              <h1 className="text-[1.3rem] leading-none font-extrabold text-foreground tracking-tight">MindPulse History</h1>
-              <span className="text-xs text-muted-foreground tracking-[0.2em] uppercase hidden sm:inline">Session Timeline</span>
+              <h1 className="text-lg leading-none font-semibold text-foreground tracking-tight">MindPulse History</h1>
+              <span className="text-[11px] text-muted-foreground tracking-[0.12em] uppercase hidden sm:inline">Session Timeline</span>
             </div>
           </div>
           <Link
             to="/"
-            className="px-2.5 py-1 text-xs rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="px-3 py-1.5 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             Back to Dashboard
           </Link>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-8 space-y-6 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="glass-card p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Total Sessions</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{overallStats.totalSessions}</p>
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-7 space-y-7">
+        <section className="flex flex-wrap items-end gap-x-8 gap-y-4 pb-1 border-b border-border/70">
+          <div className="metric-inline">
+            <p className="metric-inline-value">{overallStats.totalSessions}</p>
+            <p className="metric-inline-label">Total Sessions</p>
           </div>
-          <div className="glass-card p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Avg Focus Score</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{overallStats.avgFocusScore}</p>
+          <div className="metric-inline">
+            <p className="metric-inline-value">{overallStats.avgFocusScore}</p>
+            <p className="metric-inline-label">Avg Focus</p>
           </div>
-          <div className="glass-card p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Best Session</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{overallStats.bestSession?.focusScore ?? 0}</p>
-            <p className="text-xs text-muted-foreground mt-1">{overallStats.bestSession ? formatSessionDate(overallStats.bestSession.date) : "No data"}</p>
+          <div className="metric-inline">
+            <p className="metric-inline-value">{overallStats.bestSession?.focusScore ?? 0}</p>
+            <p className="metric-inline-label">Best Score</p>
           </div>
-          <div className="glass-card p-4">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Current Streak</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">{overallStats.currentStreak} days</p>
+          <div className="metric-inline">
+            <p className="metric-inline-value">{overallStats.currentStreak}</p>
+            <p className="metric-inline-label">Day Streak</p>
           </div>
-        </div>
+        </section>
 
-        <div className="glass-card p-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">7-Day Focus Trend</h3>
+        <section>
+          <h3 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-[0.1em]">7-Day Focus Trend</h3>
           <div className="h-[240px]">
             {!hasSevenDayPoints ? (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -363,15 +358,15 @@ function HistoryPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={sevenDayFocusData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.3 0.02 260)" />
-                  <XAxis dataKey="day" stroke="oklch(0.5 0.02 260)" fontSize={11} />
-                  <YAxis domain={[0, 100]} stroke="oklch(0.5 0.02 260)" fontSize={11} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.3 0.005 260)" />
+                  <XAxis dataKey="day" stroke="oklch(0.6 0.01 260)" fontSize={11} />
+                  <YAxis domain={[0, 100]} stroke="oklch(0.6 0.01 260)" fontSize={11} />
                   <Tooltip
                     contentStyle={{
-                      background: "oklch(0.18 0.02 260 / 90%)",
-                      border: "1px solid oklch(0.3 0.02 260)",
-                      borderRadius: "8px",
-                      color: "oklch(0.93 0.01 260)",
+                      background: "#111111",
+                      border: "1px solid oklch(0.3 0.005 260)",
+                      borderRadius: "6px",
+                      color: "oklch(0.95 0.005 260)",
                       fontSize: 12,
                     }}
                   />
@@ -379,28 +374,28 @@ function HistoryPage() {
                     type="monotone"
                     dataKey="focusScore"
                     connectNulls={false}
-                    stroke="oklch(0.72 0.19 160)"
-                    strokeWidth={2.6}
+                    stroke="oklch(0.72 0.18 158)"
+                    strokeWidth={2.2}
                     dot={false}
-                    activeDot={{ r: 4, fill: "oklch(0.72 0.19 160)", strokeWidth: 0 }}
+                    activeDot={{ r: 4, fill: "oklch(0.72 0.18 158)", strokeWidth: 0 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </section>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border/70 pb-2">
             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Sessions</h3>
-            <div className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background/50 p-1">
+            <div className="inline-flex items-center gap-5">
               <button
                 type="button"
                 onClick={() => setSourceFilter("all")}
-                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                className={`pb-1 text-xs border-b transition-colors ${
                   sourceFilter === "all"
-                    ? "bg-primary/20 text-foreground border border-primary/35"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "text-foreground border-primary"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
                 }`}
               >
                 All
@@ -408,10 +403,10 @@ function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setSourceFilter("web")}
-                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                className={`pb-1 text-xs border-b transition-colors ${
                   sourceFilter === "web"
-                    ? "bg-primary/20 text-foreground border border-primary/35"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "text-foreground border-primary"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
                 }`}
               >
                 Web
@@ -419,10 +414,10 @@ function HistoryPage() {
               <button
                 type="button"
                 onClick={() => setSourceFilter("extension")}
-                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                className={`pb-1 text-xs border-b transition-colors ${
                   sourceFilter === "extension"
-                    ? "bg-primary/20 text-foreground border border-primary/35"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "text-foreground border-primary"
+                    : "text-muted-foreground border-transparent hover:text-foreground"
                 }`}
               >
                 Extension
@@ -431,30 +426,33 @@ function HistoryPage() {
           </div>
 
           {isLoading ? (
-            <div className="glass-card p-6 text-sm text-muted-foreground">Loading history...</div>
+            <div className="text-sm text-muted-foreground py-8">Loading history...</div>
           ) : filteredSessions.length === 0 ? (
-            <div className="glass-card p-6 text-sm text-muted-foreground">No sessions yet. Start a coding session to build your history.</div>
+            <div className="text-sm text-muted-foreground py-8">No sessions yet. Start a coding session to build your history.</div>
           ) : (
             filteredSessions.map((session) => {
               const tone = getToneStyles(session.focusScore);
 
               return (
-                <div key={session.id || `${session.date}-${session.focusScore}`} className={`glass-card p-5 border ${tone.card}`}>
+                <article
+                  key={session.id || `${session.date}-${session.focusScore}`}
+                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-4 py-4 hover:bg-accent/35 transition-colors`}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">{formatSessionDate(session.date)}</p>
-                      <p className="text-xl font-semibold text-foreground mt-1">{getSessionTitle(session)}</p>
+                      <p className="text-lg font-semibold text-foreground mt-1">{getSessionTitle(session)}</p>
                     </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full border ${tone.badge}`}>{tone.label}</span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-md border ${tone.badge}`}>{tone.label}</span>
                   </div>
 
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
-                    <div className="rounded-md bg-background/50 p-3 border border-border/40">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Focus Score</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 border-t border-border/60 pt-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Focus Score</p>
                       <p className="text-lg font-semibold text-foreground mt-1">{Math.round(session.focusScore)}</p>
                     </div>
-                    <div className="rounded-md bg-background/50 p-3 border border-border/40">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                         {session.source === "extension" ? "Keystrokes" : "Productivity"}
                       </p>
                       <p className="text-lg font-semibold text-foreground mt-1">
@@ -463,16 +461,16 @@ function HistoryPage() {
                           : Math.round(session.productivity)}
                       </p>
                     </div>
-                    <div className="rounded-md bg-background/50 p-3 border border-border/40">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Session Duration</p>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Session Duration</p>
                       <p className="text-lg font-semibold text-foreground mt-1">{formatDuration(session.sessionDuration)}</p>
                     </div>
-                    <div className="rounded-md bg-background/50 p-3 border border-border/40">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Avg Cognitive Load</p>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">Avg Cognitive Load</p>
                       <p className="text-lg font-semibold text-foreground mt-1">{Math.round(session.avgCognitiveLoad)}</p>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })
           )}

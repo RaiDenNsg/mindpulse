@@ -30,29 +30,23 @@ function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="pointer-events-none absolute -top-20 -left-24 h-72 w-72 rounded-full bg-primary/12 blur-3xl" />
-      <div className="pointer-events-none absolute top-28 -right-20 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-neutral-yellow/10 blur-3xl" />
-
-      {/* Header */}
-      <header className="border-b border-border/40 bg-gradient-to-b from-background to-background/95 px-4 sm:px-6 xl:px-10 py-5 backdrop-blur-md relative z-10">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0" />
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border px-4 sm:px-6 xl:px-10 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/35 flex items-center justify-center shadow-[0_0_26px_oklch(0.72_0.19_160_/20%)]">
-              <span className="text-primary font-extrabold text-base">M</span>
+            <div className="w-8 h-8 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center">
+              <span className="text-primary font-semibold text-sm">M</span>
             </div>
             <div>
-              <h1 className="text-[1.3rem] leading-none font-extrabold text-foreground tracking-tight">MindPulse</h1>
-              <span className="text-xs text-muted-foreground tracking-[0.2em] uppercase hidden sm:inline">Cognitive Intelligence</span>
+              <h1 className="text-lg leading-none font-semibold text-foreground tracking-tight">MindPulse</h1>
+              <span className="text-[11px] text-muted-foreground tracking-[0.12em] uppercase hidden sm:inline">Cognitive Intelligence</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <StatusBadge focusState={state.focusState} />
             <Link
               to="/history"
-              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+              className="px-3 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
             >
               History
             </Link>
@@ -61,7 +55,7 @@ function Dashboard() {
               onClick={() => {
                 void handleSignOut();
               }}
-              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+              className="px-3 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
             >
               Sign out
             </button>
@@ -69,12 +63,8 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-8 space-y-7 relative z-10">
-        {/* Editor */}
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-7 space-y-6">
         <CodeEditor onKeyDown={handleKeyDown} />
-
-        {/* Stats */}
         <StatsPanel
           typingSpeed={state.typingSpeed}
           backspaceRate={state.backspaceRate}
@@ -83,12 +73,11 @@ function Dashboard() {
           sessionDuration={state.sessionDuration}
         />
 
-        {/* Graph + Insights */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)] gap-6 xl:gap-7">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.85fr)_minmax(360px,1fr)] gap-5 xl:gap-6">
           <div className="fade-in fade-in-delay-2 min-w-0">
             <CognitiveGraph data={state.graphData} />
           </div>
-          <div className="space-y-6 fade-in fade-in-delay-3 min-w-0">
+          <div className="space-y-5 fade-in fade-in-delay-3 min-w-0">
             <InsightsPanel insight={state.insight} focusState={state.focusState} />
             <DailyReport sessionDuration={state.sessionDuration} />
           </div>
