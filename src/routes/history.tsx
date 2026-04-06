@@ -9,9 +9,13 @@ interface SessionRecord {
   date: string;
   focusScore: number;
   productivity: number;
+  keystrokes: number;
+  typingSpeed: number;
   sessionDuration: number;
   avgCognitiveLoad: number;
   source?: string;
+  platform?: string;
+  site?: string;
 }
 
 type SourceFilter = "all" | "web" | "extension";
@@ -30,15 +34,53 @@ function toNumber(value: unknown): number {
   return Number(value ?? 0);
 }
 
+function toText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function isExtensionSession(raw: Record<string, unknown>): boolean {
+  return String(raw.source ?? "") === "extension";
+}
+
+function getSessionTitle(session: SessionRecord): string {
+  if (session.source === "extension") {
+    const siteValue = session.site || session.platform;
+    return siteValue ? toTitleCase(siteValue) : "Extension Session";
+  }
+
+  return `Focus ${Math.round(session.focusScore)}`;
+}
+
 function normalizeSession(raw: Record<string, unknown>): SessionRecord {
+  const extensionSession = isExtensionSession(raw);
+  const keystrokes = toNumber(raw.keystrokes ?? raw.keystrokeCount);
+  const typingSpeed = toNumber(raw.typingSpeed);
+  const productivity = extensionSession
+    ? Math.round(Math.min(100, (keystrokes / 20) + (typingSpeed * 1.5)))
+    : toNumber(raw.productivity);
+
   return {
     id: String(raw.id ?? ""),
     date: String(raw.date ?? ""),
     focusScore: toNumber(raw.focusScore),
-    productivity: toNumber(raw.productivity),
+    productivity,
+    keystrokes,
+    typingSpeed,
     sessionDuration: toNumber(raw.sessionDuration),
-    avgCognitiveLoad: toNumber(raw.avgCognitiveLoad),
-    source: typeof raw.source === "string" ? raw.source : undefined,
+    avgCognitiveLoad: extensionSession
+      ? toNumber(raw.cognitiveLoad ?? raw.avgCognitiveLoad)
+      : toNumber(raw.avgCognitiveLoad ?? raw.cognitiveLoad),
+    source: toText(raw.source),
+    platform: toText(raw.platform),
+    site: toText(raw.site),
   };
 }
 
@@ -401,7 +443,7 @@ function HistoryPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">{formatSessionDate(session.date)}</p>
-                      <p className="text-xl font-semibold text-foreground mt-1">Focus {Math.round(session.focusScore)}</p>
+                      <p className="text-xl font-semibold text-foreground mt-1">{getSessionTitle(session)}</p>
                     </div>
                     <span className={`text-xs px-2.5 py-1 rounded-full border ${tone.badge}`}>{tone.label}</span>
                   </div>
@@ -412,8 +454,14 @@ function HistoryPage() {
                       <p className="text-lg font-semibold text-foreground mt-1">{Math.round(session.focusScore)}</p>
                     </div>
                     <div className="rounded-md bg-background/50 p-3 border border-border/40">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Productivity</p>
-                      <p className="text-lg font-semibold text-foreground mt-1">{Math.round(session.productivity)}</p>
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {session.source === "extension" ? "Keystrokes" : "Productivity"}
+                      </p>
+                      <p className="text-lg font-semibold text-foreground mt-1">
+                        {session.source === "extension"
+                          ? Math.round(session.keystrokes)
+                          : Math.round(session.productivity)}
+                      </p>
                     </div>
                     <div className="rounded-md bg-background/50 p-3 border border-border/40">
                       <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Session Duration</p>
