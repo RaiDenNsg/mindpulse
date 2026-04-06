@@ -7,8 +7,12 @@ const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
 
 const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
 const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
-const FIRESTORE_SESSIONS_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/sessions?key=${FIREBASE_API_KEY}`;
+const FIRESTORE_TOP_LEVEL_SESSIONS_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/sessions?key=${FIREBASE_API_KEY}`;
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
+
+function getFirestoreUserSessionsUrl(userId) {
+  return `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${encodeURIComponent(userId)}/sessions?key=${FIREBASE_API_KEY}`;
+}
 
 // Get the current active tab
 async function getCurrentTab() {
@@ -244,9 +248,31 @@ function toFirestoreDocument(metrics) {
 }
 
 async function syncSessionToFirebase(metrics) {
-  const firestorePayload = toFirestoreDocument(metrics);
+  const userId = currentUser?.userId;
+  if (!userId) {
+    throw new Error('Cannot sync without userId');
+  }
 
-  const response = await fetch(FIRESTORE_SESSIONS_URL, {
+  const firestorePayload = toFirestoreDocument(metrics);
+  const userSessionsUrl = getFirestoreUserSessionsUrl(userId);
+
+  console.log('[MindPulse Sync] Starting sync');
+  console.log('[MindPulse Sync] userId:', userId);
+  console.log('[MindPulse Sync] Path:', `users/${userId}/sessions`);
+  console.log('[MindPulse Sync] Payload:', {
+    date: new Date().toISOString().slice(0, 10),
+    keystrokes: metrics.keystrokeCount || 0,
+    typingSpeed: metrics.typingSpeed || 0,
+    focusScore: metrics.focusScore || 0,
+    cognitiveLoad: metrics.cognitiveLoad || 0,
+    sessionDuration: metrics.elapsedSeconds || 0,
+    backspaces: metrics.backspaceCount || 0,
+    source: 'extension',
+    platform: (metrics.platform || 'programiz').toLowerCase(),
+  });
+
+  // Primary write: users/{userId}/sessions
+  const response = await fetch(userSessionsUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -256,10 +282,40 @@ async function syncSessionToFirebase(metrics) {
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('[MindPulse Sync] Nested write failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+    });
     throw new Error(errorText || 'Failed to save session to Firestore');
   }
 
-  return response.json();
+  const nestedResult = await response.json();
+  console.log('[MindPulse Sync] Nested write success:', nestedResult?.name || nestedResult);
+
+  // Compatibility write for current web History query path (top-level sessions).
+  const mirrorResponse = await fetch(FIRESTORE_TOP_LEVEL_SESSIONS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(firestorePayload)
+  });
+
+  if (!mirrorResponse.ok) {
+    const mirrorErrorText = await mirrorResponse.text();
+    console.error('[MindPulse Sync] Top-level mirror failed:', {
+      status: mirrorResponse.status,
+      statusText: mirrorResponse.statusText,
+      error: mirrorErrorText,
+    });
+    throw new Error(mirrorErrorText || 'Nested sync succeeded but mirror sync failed');
+  }
+
+  const mirrorResult = await mirrorResponse.json();
+  console.log('[MindPulse Sync] Top-level mirror success:', mirrorResult?.name || mirrorResult);
+
+  return { nestedResult, mirrorResult };
 }
 
 // Reset session
