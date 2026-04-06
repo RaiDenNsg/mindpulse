@@ -48,7 +48,7 @@ function Dashboard() {
             </div>
             <Link
               to="/history"
-              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+              className="hidden sm:inline-flex px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
             >
               History
             </Link>
@@ -57,7 +57,7 @@ function Dashboard() {
               onClick={() => {
                 void handleSignOut();
               }}
-              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+              className="hidden sm:inline-flex px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
             >
               Sign out
             </button>
@@ -65,7 +65,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-6 sm:py-7 space-y-5 sm:space-y-6">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-6 sm:py-7 pb-24 sm:pb-7 space-y-5 sm:space-y-6">
         <CodeEditor onKeyDown={handleKeyDown} />
         <StatsPanel
           typingSpeed={state.typingSpeed}
@@ -85,6 +85,26 @@ function Dashboard() {
           </div>
         </div>
       </main>
+
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+        <div className="px-4 py-3 grid grid-cols-2 gap-2">
+          <Link
+            to="/history"
+            className="h-10 inline-flex items-center justify-center rounded-md border border-border text-xs font-medium text-foreground hover:bg-accent transition-colors"
+          >
+            History
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              void handleSignOut();
+            }}
+            className="h-10 inline-flex items-center justify-center rounded-md border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

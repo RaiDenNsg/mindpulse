@@ -321,14 +321,14 @@ function HistoryPage() {
           </div>
           <Link
             to="/"
-            className="px-3.5 py-2 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="hidden sm:inline-flex px-3.5 py-2 text-xs rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           >
             Back to Dashboard
           </Link>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-6 sm:py-7 space-y-6 sm:space-y-7">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 xl:px-10 py-6 sm:py-7 pb-24 sm:pb-7 space-y-6 sm:space-y-7">
         <section className="flex flex-wrap items-end gap-x-5 sm:gap-x-8 gap-y-3 sm:gap-y-4 pb-1 border-b border-border/70">
           <div className="metric-inline">
             <p className="metric-inline-value">{overallStats.totalSessions}</p>
@@ -436,7 +436,7 @@ function HistoryPage() {
               return (
                 <article
                   key={session.id || `${session.date}-${session.focusScore}`}
-                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-4 sm:px-4.5 py-4 sm:py-4.5 hover:bg-accent/35 transition-colors`}
+                  className={`border border-border rounded-md border-l-2 ${tone.card} bg-card px-4 py-4 hover:bg-accent/35 transition-colors`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -476,6 +476,17 @@ function HistoryPage() {
           )}
         </div>
       </main>
+
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+        <div className="px-4 py-3">
+          <Link
+            to="/"
+            className="h-10 inline-flex w-full items-center justify-center rounded-md border border-border text-xs font-medium text-foreground hover:bg-accent transition-colors"
+          >
+            Back to Dashboard
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
