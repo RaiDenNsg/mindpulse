@@ -14,7 +14,8 @@
     "https://hackerrank.com/*",
     "https://www.hackerrank.com/*",
     "https://programiz.com/*",
-    "https://www.programiz.com/*"
+    "https://www.programiz.com/*",
+    "https://firestore.googleapis.com/*"
   ],
   "content_scripts": [
     {

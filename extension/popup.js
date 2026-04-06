@@ -2,6 +2,10 @@
 
 let currentMetrics = null;
 
+const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
+const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
+const FIRESTORE_SESSIONS_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/sessions?key=${FIREBASE_API_KEY}`;
+
 // Get the current active tab
 async function getCurrentTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -57,6 +61,7 @@ function updateUI(metrics) {
   document.getElementById('sessionTime').textContent = formatTime(metrics.elapsedSeconds);
   document.getElementById('platformBadge').textContent = metrics.platform;
   document.getElementById('timestamp').textContent = `Last updated: ${formatTimestamp(metrics.timestamp)}`;
+  document.getElementById('syncBtn').disabled = false;
 
   // Color code focus score
   const focusEl = document.getElementById('focusScore');
@@ -77,6 +82,44 @@ function updateUI(metrics) {
   } else {
     loadEl.style.color = '#ef4444'; // red
   }
+}
+
+function toFirestoreDocument(metrics) {
+  const sessionDate = new Date().toISOString().slice(0, 10);
+  const platformValue = (metrics.platform || 'programiz').toLowerCase();
+
+  return {
+    fields: {
+      date: { stringValue: sessionDate },
+      keystrokes: { integerValue: String(metrics.keystrokeCount || 0) },
+      typingSpeed: { integerValue: String(metrics.typingSpeed || 0) },
+      focusScore: { integerValue: String(metrics.focusScore || 0) },
+      cognitiveLoad: { integerValue: String(metrics.cognitiveLoad || 0) },
+      sessionDuration: { integerValue: String(metrics.elapsedSeconds || 0) },
+      backspaces: { integerValue: String(metrics.backspaceCount || 0) },
+      source: { stringValue: 'extension' },
+      platform: { stringValue: platformValue }
+    }
+  };
+}
+
+async function syncSessionToFirebase(metrics) {
+  const firestorePayload = toFirestoreDocument(metrics);
+
+  const response = await fetch(FIRESTORE_SESSIONS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(firestorePayload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Failed to save session to Firestore');
+  }
+
+  return response.json();
 }
 
 // Reset session
@@ -103,10 +146,35 @@ async function resetSession() {
 // Event listeners
 document.getElementById('resetBtn').addEventListener('click', resetSession);
 
-document.getElementById('syncBtn').addEventListener('click', () => {
-  if (currentMetrics) {
-    console.log('Sync data to Firebase:', currentMetrics);
-    alert('Firebase sync coming soon!');
+document.getElementById('syncBtn').addEventListener('click', async () => {
+  const syncBtn = document.getElementById('syncBtn');
+
+  if (!currentMetrics) {
+    syncBtn.textContent = 'No Data';
+    setTimeout(() => {
+      syncBtn.textContent = 'Sync to Firebase';
+    }, 1200);
+    return;
+  }
+
+  const originalText = syncBtn.textContent;
+  syncBtn.disabled = true;
+  syncBtn.textContent = 'Syncing...';
+
+  try {
+    await syncSessionToFirebase(currentMetrics);
+    syncBtn.textContent = 'Synced!';
+    setTimeout(() => {
+      syncBtn.textContent = 'Sync to Firebase';
+      syncBtn.disabled = false;
+    }, 1800);
+  } catch (error) {
+    console.error('Firebase sync failed:', error);
+    syncBtn.textContent = 'Sync Failed';
+    setTimeout(() => {
+      syncBtn.textContent = originalText;
+      syncBtn.disabled = false;
+    }, 1800);
   }
 });
 
