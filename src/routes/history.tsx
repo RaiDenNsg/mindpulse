@@ -11,7 +11,10 @@ interface SessionRecord {
   productivity: number;
   sessionDuration: number;
   avgCognitiveLoad: number;
+  source?: string;
 }
+
+type SourceFilter = "all" | "web" | "extension";
 
 export const Route = createFileRoute("/history")({
   component: HistoryPage,
@@ -35,7 +38,21 @@ function normalizeSession(raw: Record<string, unknown>): SessionRecord {
     productivity: toNumber(raw.productivity),
     sessionDuration: toNumber(raw.sessionDuration),
     avgCognitiveLoad: toNumber(raw.avgCognitiveLoad),
+    source: typeof raw.source === "string" ? raw.source : undefined,
   };
+}
+
+function matchesSourceFilter(session: SessionRecord, filter: SourceFilter): boolean {
+  if (filter === "all") {
+    return true;
+  }
+
+  if (filter === "extension") {
+    return session.source === "extension";
+  }
+
+  // Web includes explicit "web" and legacy docs with no source field.
+  return session.source === "web" || !session.source;
 }
 
 function getFocusTone(score: number): "good" | "avg" | "poor" {
@@ -116,6 +133,7 @@ function formatDuration(seconds: number): string {
 function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const activeUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -182,18 +200,26 @@ function HistoryPage() {
     };
   }, []);
 
+  const filteredSessions = useMemo(
+    () => sessions.filter((session) => matchesSourceFilter(session, sourceFilter)),
+    [sessions, sourceFilter],
+  );
+
   const overallStats = useMemo(() => {
-    const totalSessions = sessions.length;
+    const totalSessions = filteredSessions.length;
 
     const avgFocusScore = totalSessions > 0
-      ? Math.round(sessions.reduce((sum, session) => sum + session.focusScore, 0) / totalSessions)
+      ? Math.round(filteredSessions.reduce((sum, session) => sum + session.focusScore, 0) / totalSessions)
       : 0;
 
     const bestSession = totalSessions > 0
-      ? sessions.reduce((best, session) => (session.focusScore > best.focusScore ? session : best), sessions[0])
+      ? filteredSessions.reduce(
+        (best, session) => (session.focusScore > best.focusScore ? session : best),
+        filteredSessions[0],
+      )
       : null;
 
-    const currentStreak = getCurrentStreak(sessions);
+    const currentStreak = getCurrentStreak(filteredSessions);
 
     return {
       totalSessions,
@@ -201,11 +227,11 @@ function HistoryPage() {
       bestSession,
       currentStreak,
     };
-  }, [sessions]);
+  }, [filteredSessions]);
 
   const sevenDayFocusData = useMemo(() => {
     const byDate = new Map<string, { sum: number; count: number }>();
-    sessions.forEach((session) => {
+    filteredSessions.forEach((session) => {
       if (!session.date) {
         return;
       }
@@ -233,7 +259,7 @@ function HistoryPage() {
     }
 
     return points;
-  }, [sessions]);
+  }, [filteredSessions]);
 
   const hasSevenDayPoints = sevenDayFocusData.some((point) => point.focusScore !== null);
 
@@ -322,14 +348,51 @@ function HistoryPage() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">All Sessions</h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Sessions</h3>
+            <div className="inline-flex items-center gap-1 rounded-md border border-border/70 bg-background/50 p-1">
+              <button
+                type="button"
+                onClick={() => setSourceFilter("all")}
+                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                  sourceFilter === "all"
+                    ? "bg-primary/20 text-foreground border border-primary/35"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceFilter("web")}
+                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                  sourceFilter === "web"
+                    ? "bg-primary/20 text-foreground border border-primary/35"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                Web
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceFilter("extension")}
+                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                  sourceFilter === "extension"
+                    ? "bg-primary/20 text-foreground border border-primary/35"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+              >
+                Extension
+              </button>
+            </div>
+          </div>
 
           {isLoading ? (
             <div className="glass-card p-6 text-sm text-muted-foreground">Loading history...</div>
-          ) : sessions.length === 0 ? (
+          ) : filteredSessions.length === 0 ? (
             <div className="glass-card p-6 text-sm text-muted-foreground">No sessions yet. Start a coding session to build your history.</div>
           ) : (
-            sessions.map((session) => {
+            filteredSessions.map((session) => {
               const tone = getToneStyles(session.focusScore);
 
               return (
