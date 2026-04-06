@@ -17,9 +17,9 @@ export default function StatusBadge({ focusState }: StatusBadgeProps) {
     : "bg-muted-foreground";
 
   return (
-    <div className="glass-card status-badge px-6 py-3.5 flex items-center gap-3.5 fade-in fade-in-delay-1">
-      <span className={`status-dot w-3 h-3 rounded-full ${dotColor} pulse-dot`} />
-      <span className={`text-base font-bold tracking-tight ${colorClass} ${glowClass}`}>
+    <div className="glass-card status-badge px-7 py-3 flex items-center gap-3 fade-in fade-in-delay-1 border-l-4 border-l-primary/30">
+      <span className={`status-dot w-3.5 h-3.5 rounded-full ${dotColor} pulse-dot pulse-glow`} />
+      <span className={`text-sm font-bold tracking-tight ${colorClass} ${glowClass} drop-shadow-[0_0_12px_currentColor]`}>
         {focusState}
       </span>
     </div>

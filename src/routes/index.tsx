@@ -36,8 +36,9 @@ function Dashboard() {
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-neutral-yellow/10 blur-3xl" />
 
       {/* Header */}
-      <header className="border-b border-border/40 px-4 sm:px-6 xl:px-10 py-5 backdrop-blur-md bg-background/45 relative z-10">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+      <header className="border-b border-border/40 bg-gradient-to-b from-background to-background/95 px-4 sm:px-6 xl:px-10 py-5 backdrop-blur-md relative z-10">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0" />
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/35 flex items-center justify-center shadow-[0_0_26px_oklch(0.72_0.19_160_/20%)]">
               <span className="text-primary font-extrabold text-base">M</span>
@@ -47,11 +48,11 @@ function Dashboard() {
               <span className="text-xs text-muted-foreground tracking-[0.2em] uppercase hidden sm:inline">Cognitive Intelligence</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <StatusBadge focusState={state.focusState} />
             <Link
               to="/history"
-              className="px-2.5 py-1 text-xs rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
             >
               History
             </Link>
@@ -60,7 +61,7 @@ function Dashboard() {
               onClick={() => {
                 void handleSignOut();
               }}
-              className="px-2.5 py-1 text-xs rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="px-3.5 py-2 text-xs font-medium rounded-md border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
             >
               Sign out
             </button>
