@@ -89,7 +89,7 @@ function Dashboard() {
           </div>
           <div className="space-y-6 fade-in fade-in-delay-3 min-w-0">
             <InsightsPanel insight={state.insight} focusState={state.focusState} />
-            <DailyReport />
+            <DailyReport sessionDuration={state.sessionDuration} />
           </div>
         </div>
       </main>

@@ -6,7 +6,7 @@ import { getTodayKey, getYesterdayKey, type SessionData } from "@/utils/storage"
 
 const SESSION_SAVED_EVENT = "mindpulse:session-saved";
 
-export default function DailyReport() {
+export default function DailyReport({ sessionDuration = 0 }: { sessionDuration?: number }) {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionsByDate, setSessionsByDate] = useState<Record<string, SessionData>>({});
   const [cachedYesterdaySession, setCachedYesterdaySession] = useState<SessionData | null>(null);
@@ -123,6 +123,7 @@ export default function DailyReport() {
     <DailyReportContent
       sessionsByDate={sessionsByDate}
       cachedYesterdaySession={cachedYesterdaySession}
+      sessionDuration={sessionDuration}
     />
   );
 }
@@ -130,26 +131,45 @@ export default function DailyReport() {
 function DailyReportContent({
   sessionsByDate,
   cachedYesterdaySession,
+  sessionDuration = 0,
 }: {
   sessionsByDate: Record<string, SessionData>;
   cachedYesterdaySession: SessionData | null;
+  sessionDuration?: number;
 }) {
+  // Filter out invalid sessions: focusScore === 100 and sessionDuration < 60 indicates unsaved/corrupted data
+  const isValidSession = (session: SessionData | null): boolean => {
+    if (!session) return false;
+    if (session.focusScore === 100 && session.sessionDuration < 60) {
+      return false; // Skip invalid data
+    }
+    return true;
+  };
+
   const todayKey = getTodayKey();
   const yesterdayKey = getYesterdayKey();
-  const savedToday = sessionsByDate[todayKey] ?? null;
+  const savedToday = isValidSession(sessionsByDate[todayKey] ?? null) ? sessionsByDate[todayKey] : null;
   const today = savedToday;
-  const yesterday = sessionsByDate[yesterdayKey] ?? cachedYesterdaySession;
+  const yesterday = isValidSession(sessionsByDate[yesterdayKey] ?? null) ? (sessionsByDate[yesterdayKey] ?? null) : 
+                    isValidSession(cachedYesterdaySession) ? cachedYesterdaySession : null;
   const hasPreviousSession = Boolean(yesterday);
 
+  // Streak: count consecutive days with valid sessions
+  // If today or yesterday has a valid session, minimum streak is 1
   let streak = 0;
-  const streakCursor = new Date();
-  while (true) {
-    const key = streakCursor.toISOString().split("T")[0];
-    if (sessionsByDate[key]) {
-      streak += 1;
-      streakCursor.setDate(streakCursor.getDate() - 1);
-    } else {
-      break;
+  if (savedToday || yesterday) {
+    streak = 1;
+    const streakCursor = new Date();
+    streakCursor.setDate(streakCursor.getDate() - 1);
+    while (true) {
+      const key = streakCursor.toISOString().split("T")[0];
+      const daySession = sessionsByDate[key];
+      if (isValidSession(daySession)) {
+        streak += 1;
+        streakCursor.setDate(streakCursor.getDate() - 1);
+      } else {
+        break;
+      }
     }
   }
 
@@ -158,8 +178,9 @@ function DailyReportContent({
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = d.toISOString().split("T")[0];
-    const sessionForDay = key === todayKey ? savedToday : (sessionsByDate[key] ?? null);
-    sevenDaySessions.push({ date: key, session: sessionForDay });
+    const daySession = key === todayKey ? savedToday : (sessionsByDate[key] ?? null);
+    const validSession = isValidSession(daySession) ? daySession : null;
+    sevenDaySessions.push({ date: key, session: validSession });
   }
 
   const clampMetric = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
@@ -307,6 +328,8 @@ function DailyReportContent({
 
       {!today && !yesterday ? (
         <p className="text-sm text-muted-foreground">No session data yet. Start typing!</p>
+      ) : sessionDuration < 60 ? (
+        <p className="text-sm text-muted-foreground">Session starting... save after 60 seconds of activity</p>
       ) : (
         <>
           <Row

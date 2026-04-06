@@ -25,13 +25,22 @@ export function detectFocusState(
 }
 
 export function calculateFocusScore(typingTime: number, totalTime: number): number {
-  // Focus score: percentage of time actively typing (not idle)
-  // If idle time is > totalTime, focus score should be 0
+  // Focus score increases gradually over time, capping at 70-80% range
+  // After 60 seconds of session: max 70%
+  // After 5 minutes of session: max 80%
   if (totalTime === 0) return 0;
-  // Only count actual active typing time, ensure it doesn't exceed total time
-  const activeTime = Math.min(typingTime, totalTime);
-  const rawScore = Math.round((activeTime / totalTime) * 100);
-  return Math.max(0, Math.min(100, rawScore));
+  
+  const sessionSec = totalTime / 1000;
+  
+  // Ramp up gradually: 70% reachable at 60 seconds, 80% at 5 minutes
+  if (sessionSec < 60) {
+    // 0% at start, reaching 70% at 60 seconds
+    return Math.round((sessionSec / 60) * 70);
+  } else {
+    // Beyond 60 seconds, slowly approach 80% over the next 4 minutes
+    const excessSec = Math.min(sessionSec - 60, 240);
+    return Math.round(70 + (excessSec / 240) * 10);
+  }
 }
 
 export function calculateProductivity(focusScore: number, backspaceRate: number): number {
