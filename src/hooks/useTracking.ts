@@ -130,6 +130,7 @@ export function useTracking() {
   const intervalKeystrokesRef = useRef(0);
   const intervalBackspacesRef = useRef(0);
   const lastSavedAtRef = useRef(0);
+  const previousCognitiveLoadRef = useRef(0);
   const hasStartedTypingRef = useRef(initialGraphData.length > 0);
   const currentGraphDateRef = useRef(getTodayKey());
 
@@ -223,6 +224,7 @@ export function useTracking() {
         cognitiveLoadsRef.current = [];
         hasStartedTypingRef.current = false;
         firstKeystrokeTimeRef.current = null;
+        previousCognitiveLoadRef.current = 0;
 
         setState((prev) => ({
           ...prev,
@@ -255,20 +257,39 @@ export function useTracking() {
       // Idle time: only count after typing starts
       const idleSec = (now - lastKeypressRef.current) / 1000;
 
+      // Track recent keystrokes in this 5-second window
+      const recentKeystrokes = intervalKeystrokesRef.current;
+
       // Use period-based metrics for more responsive cognitive load calculation
       // This reflects current activity instead of session-wide averages
-      const periodSpeed = intervalKeystrokesRef.current > 0
-        ? intervalKeystrokesRef.current
-        : 0;
-      const periodBRate = intervalKeystrokesRef.current > 0
-        ? Math.round((intervalBackspacesRef.current / intervalKeystrokesRef.current) * 100)
+      const periodSpeed = recentKeystrokes > 0 ? recentKeystrokes : 0;
+      const periodBRate = recentKeystrokes > 0
+        ? Math.round((intervalBackspacesRef.current / recentKeystrokes) * 100)
         : 0;
 
-      // Calculate cognitive load (already guarded by typing check above)
-      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+      // CRITICAL: Cognitive load management based on user activity
+      // If no keystrokes in this 5-second window → user is idle
+      // Idle: decrease load by 2 (minimum 0)
+      // Active: calculate based on formula
+      let load = previousCognitiveLoadRef.current;
+      
+      if (recentKeystrokes === 0) {
+        // User is idle this interval: decrease cognitive load
+        load = Math.max(0, previousCognitiveLoadRef.current - 2);
+      } else {
+        // User is typing: calculate cognitive load normally
+        load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+        // Ensure it doesn't decrease on its own, only increases with activity
+        load = Math.max(load, previousCognitiveLoadRef.current);
+      }
+      
+      // Store for next interval
+      previousCognitiveLoadRef.current = load;
       
       console.log("Cognitive debug", {
         hasStartedTyping: hasStartedTypingRef.current,
+        recentKeystrokes,
+        idleThisInterval: recentKeystrokes === 0,
         backspaceCount: intervalBackspacesRef.current,
         idleTime: Number(idleSec.toFixed(2)),
         typingSpeed: periodSpeed,
