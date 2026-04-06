@@ -7,7 +7,6 @@ const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
 
 const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
 const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
-const FIRESTORE_TOP_LEVEL_SESSIONS_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/sessions?key=${FIREBASE_API_KEY}`;
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 function getFirestoreUserSessionsUrl(userId) {
@@ -293,29 +292,7 @@ async function syncSessionToFirebase(metrics) {
   const nestedResult = await response.json();
   console.log('[MindPulse Sync] Nested write success:', nestedResult?.name || nestedResult);
 
-  // Compatibility write for current web History query path (top-level sessions).
-  const mirrorResponse = await fetch(FIRESTORE_TOP_LEVEL_SESSIONS_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(firestorePayload)
-  });
-
-  if (!mirrorResponse.ok) {
-    const mirrorErrorText = await mirrorResponse.text();
-    console.error('[MindPulse Sync] Top-level mirror failed:', {
-      status: mirrorResponse.status,
-      statusText: mirrorResponse.statusText,
-      error: mirrorErrorText,
-    });
-    throw new Error(mirrorErrorText || 'Nested sync succeeded but mirror sync failed');
-  }
-
-  const mirrorResult = await mirrorResponse.json();
-  console.log('[MindPulse Sync] Top-level mirror success:', mirrorResult?.name || mirrorResult);
-
-  return { nestedResult, mirrorResult };
+  return { nestedResult };
 }
 
 // Reset session

@@ -14,6 +14,10 @@ import { db } from "./config";
 
 const SESSIONS_COLLECTION = "sessions";
 
+function userSessionsCollection(userId) {
+  return collection(db, "users", userId, SESSIONS_COLLECTION);
+}
+
 function getDateKey(offsetDays = 0) {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
@@ -44,7 +48,7 @@ export async function saveSession(userId, sessionData) {
     updatedAt: serverTimestamp(),
   };
 
-  return setDoc(doc(collection(db, SESSIONS_COLLECTION), documentId), payload, { merge: true });
+  return setDoc(doc(userSessionsCollection(userId), documentId), payload, { merge: true });
 }
 
 export async function getUserSessions(userId) {
@@ -52,10 +56,7 @@ export async function getUserSessions(userId) {
     return [];
   }
 
-  const sessionsQuery = query(
-    collection(db, SESSIONS_COLLECTION),
-    where("userId", "==", userId)
-  );
+  const sessionsQuery = query(userSessionsCollection(userId));
 
   const snapshot = await getDocs(sessionsQuery);
   return snapshot.docs.map((doc) => ({
@@ -71,8 +72,7 @@ export async function getYesterdaySession(userId) {
 
   const yesterday = getDateKey(-1);
   const yesterdayQuery = query(
-    collection(db, SESSIONS_COLLECTION),
-    where("userId", "==", userId),
+    userSessionsCollection(userId),
     where("date", "==", yesterday),
     limit(1)
   );
@@ -94,10 +94,7 @@ export async function cleanupDuplicateSessions(userId) {
     return { mergedDates: 0, deletedDocs: 0 };
   }
 
-  const sessionsQuery = query(
-    collection(db, SESSIONS_COLLECTION),
-    where("userId", "==", userId)
-  );
+  const sessionsQuery = query(userSessionsCollection(userId));
 
   const snapshot = await getDocs(sessionsQuery);
   const byDate = new Map();
@@ -119,7 +116,7 @@ export async function cleanupDuplicateSessions(userId) {
     }
 
     const canonicalId = `${userId}_${date}`;
-    const canonicalRef = doc(collection(db, SESSIONS_COLLECTION), canonicalId);
+    const canonicalRef = doc(userSessionsCollection(userId), canonicalId);
     const merged = docsForDate.reduce((acc, item) => {
       const source = item.data ?? {};
       return {
