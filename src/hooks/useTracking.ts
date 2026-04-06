@@ -120,6 +120,7 @@ export function useTracking() {
   const keystrokesRef = useRef(0);
   const backspacesRef = useRef(0);
   const lastKeypressRef = useRef(Date.now());
+  const firstKeystrokeTimeRef = useRef<number | null>(null);
   const sessionStartRef = useRef(Date.now());
   const typingTimeRef = useRef(0);
   const cognitiveLoadsRef = useRef<number[]>([]);
@@ -131,6 +132,13 @@ export function useTracking() {
 
   const handleKeyDown = useCallback((key: string) => {
     const now = Date.now();
+    
+    // Track first keystroke time
+    if (firstKeystrokeTimeRef.current === null) {
+      firstKeystrokeTimeRef.current = now;
+      lastKeypressRef.current = now;
+    }
+    
     const gap = now - lastKeypressRef.current;
 
     // Count as typing time if gap < 5s
@@ -211,6 +219,7 @@ export function useTracking() {
         currentGraphDateRef.current = todayKey;
         cognitiveLoadsRef.current = [];
         hasStartedTypingRef.current = false;
+        firstKeystrokeTimeRef.current = null;
 
         setState((prev) => ({
           ...prev,
@@ -222,8 +231,20 @@ export function useTracking() {
 
       const sessionMs = now - sessionStartRef.current;
       const sessionSec = sessionMs / 1000;
-      const sessionMin = sessionMs / 60000;
-      const idleSec = (now - lastKeypressRef.current) / 1000;
+      
+      // Only calculate duration and speed if user has started typing
+      // Duration and speed are relative to first keystroke, not session start
+      let sessionMin = 0;
+      if (hasStartedTypingRef.current && firstKeystrokeTimeRef.current !== null) {
+        const activeSessionMs = now - firstKeystrokeTimeRef.current;
+        sessionMin = activeSessionMs / 60000;
+      }
+      
+      // Idle time: only count after typing starts
+      let idleSec = 0;
+      if (hasStartedTypingRef.current) {
+        idleSec = (now - lastKeypressRef.current) / 1000;
+      }
 
       // Use period-based metrics for more responsive cognitive load calculation
       // This reflects current activity instead of session-wide averages
@@ -234,9 +255,14 @@ export function useTracking() {
         ? Math.round((intervalBackspacesRef.current / intervalKeystrokesRef.current) * 100)
         : 0;
 
-      // Calculate cognitive load based on current period activity
-      const load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+      // Calculate cognitive load only if typing has started
+      let load = 0;
+      if (hasStartedTypingRef.current) {
+        load = calculateCognitiveLoad(intervalBackspacesRef.current, idleSec, periodSpeed);
+      }
+      
       console.log("Cognitive debug", {
+        hasStartedTyping: hasStartedTypingRef.current,
         backspaceCount: intervalBackspacesRef.current,
         idleTime: Number(idleSec.toFixed(2)),
         typingSpeed: periodSpeed,
@@ -251,7 +277,10 @@ export function useTracking() {
       // Once typing starts, keep appending every 5s so the graph reflects current values.
       const shouldAppendGraphPoint = hasStartedTypingRef.current;
 
-      cognitiveLoadsRef.current.push(load);
+      // Only track cognitive loads after typing has started
+      if (hasStartedTypingRef.current) {
+        cognitiveLoadsRef.current.push(load);
+      }
 
       let nextGraphData: GraphPoint[] = [];
 
