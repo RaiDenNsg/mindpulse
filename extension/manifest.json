@@ -5,6 +5,8 @@
   "description": "Track your typing behavior and cognitive load on coding platforms",
   "permissions": [
     "activeTab",
+    "tabs",
+    "notifications",
     "storage",
     "identity"
   ],

@@ -7,6 +7,9 @@ let lastTimestamp = Date.now();
 let sessionStartTime = Date.now();
 let istyping = false;
 let typingTimeout;
+let isSessionPaused = false;
+let pausedAt = null;
+let totalPausedMs = 0;
 
 // Initialize session data
 const initializeSession = () => {
@@ -15,7 +18,16 @@ const initializeSession = () => {
   sessionStartTime = Date.now();
   lastTimestamp = Date.now();
   istyping = false;
+  isSessionPaused = false;
+  pausedAt = null;
+  totalPausedMs = 0;
 };
+
+function getElapsedMilliseconds() {
+  const now = Date.now();
+  const pausedDuration = totalPausedMs + (isSessionPaused && pausedAt ? now - pausedAt : 0);
+  return Math.max(0, now - sessionStartTime - pausedDuration);
+}
 
 // Listen for all keydown events on the page
 document.addEventListener('keydown', (event) => {
@@ -46,7 +58,7 @@ document.addEventListener('keydown', (event) => {
 // Calculate typing speed and other metrics every 30 seconds
 setInterval(() => {
   const now = Date.now();
-  const elapsedSeconds = (now - sessionStartTime) / 1000;
+  const elapsedSeconds = getElapsedMilliseconds() / 1000;
 
   if (keystrokeCount === 0) return; // Skip if no activity
 
@@ -92,7 +104,7 @@ function getPlatform() {
 // Store current metrics
 function captureMetrics() {
   const now = Date.now();
-  const elapsedSeconds = (now - sessionStartTime) / 1000;
+  const elapsedSeconds = getElapsedMilliseconds() / 1000;
 
   const typingSpeedWPM = elapsedSeconds > 0 
     ? Math.round((keystrokeCount / 5) / (elapsedSeconds / 60))
@@ -130,6 +142,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.type === 'RESET_SESSION') {
     initializeSession();
     sendResponse({ status: 'reset' });
+  } else if (request.type === 'PAUSE_SESSION') {
+    if (!isSessionPaused) {
+      isSessionPaused = true;
+      pausedAt = Date.now();
+    }
+
+    const metrics = captureMetrics();
+    chrome.storage.local.set({ currentSessionData: metrics });
+    chrome.runtime.sendMessage({ type: 'SESSION_UPDATE', data: metrics }).catch(() => {
+      // Popup might not be open, ignore error
+    });
+    sendResponse({ status: 'paused' });
+  } else if (request.type === 'RESUME_SESSION') {
+    if (isSessionPaused && pausedAt) {
+      totalPausedMs += Date.now() - pausedAt;
+      pausedAt = null;
+      isSessionPaused = false;
+    }
+
+    const metrics = captureMetrics();
+    chrome.storage.local.set({ currentSessionData: metrics });
+    chrome.runtime.sendMessage({ type: 'SESSION_UPDATE', data: metrics }).catch(() => {
+      // Popup might not be open, ignore error
+    });
+    sendResponse({ status: 'resumed' });
   }
 });
 
