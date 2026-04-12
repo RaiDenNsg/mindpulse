@@ -198,7 +198,6 @@ async function handleDistractionTab(tab, distractionSiteName) {
     const notificationId = `${NOTIFICATION_PREFIX}${tab.id}`;
     await notificationsCreate(notificationId, {
       type: 'basic',
-      iconUrl: NOTIFICATION_ICON,
       title: 'Hey, you have work to do! 👀',
       message: `You switched to ${distractionSiteName}. Are you taking a break or distracted?`,
       priority: 2,
