@@ -68,13 +68,57 @@ function storageRemove(keys) {
 
 function notificationsCreate(notificationId, options) {
   return new Promise((resolve) => {
-    chrome.notifications.create(notificationId, options, resolve);
+    try {
+      chrome.notifications.create(notificationId, options, (createdNotificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error('MindPulse notification create failed:', chrome.runtime.lastError.message);
+          resolve(false);
+          return;
+        }
+
+        resolve(Boolean(createdNotificationId));
+      });
+    } catch (error) {
+      console.error('MindPulse notification create threw:', error);
+      resolve(false);
+    }
   });
 }
 
 function notificationsClear(notificationId) {
   return new Promise((resolve) => {
-    chrome.notifications.clear(notificationId, () => resolve());
+    try {
+      chrome.notifications.clear(notificationId, (wasCleared) => {
+        if (chrome.runtime.lastError) {
+          console.error('MindPulse notification clear failed:', chrome.runtime.lastError.message);
+          resolve(false);
+          return;
+        }
+
+        resolve(Boolean(wasCleared));
+      });
+    } catch (error) {
+      console.error('MindPulse notification clear threw:', error);
+      resolve(false);
+    }
+  });
+}
+
+function runtimeSendMessage(message) {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage(message, () => {
+        if (chrome.runtime.lastError) {
+          resolve(false);
+          return;
+        }
+
+        resolve(true);
+      });
+    } catch (error) {
+      console.error('MindPulse runtime.sendMessage threw:', error);
+      resolve(false);
+    }
   });
 }
 
@@ -196,8 +240,9 @@ async function handleDistractionTab(tab, distractionSiteName) {
 
   try {
     const notificationId = `${NOTIFICATION_PREFIX}${tab.id}`;
-    await notificationsCreate(notificationId, {
+    const created = await notificationsCreate(notificationId, {
       type: 'basic',
+      iconUrl: NOTIFICATION_ICON,
       title: 'Hey, you have work to do! 👀',
       message: `You switched to ${distractionSiteName}. Are you taking a break or distracted?`,
       priority: 2,
@@ -207,10 +252,16 @@ async function handleDistractionTab(tab, distractionSiteName) {
       ],
     });
 
+    if (!created) {
+      return;
+    }
+
     await storageSet({
       [STORAGE_KEYS.pendingDistractionTabId]: tab.id,
       [STORAGE_KEYS.pendingDistractionSiteName]: distractionSiteName,
     });
+  } catch (error) {
+    console.error('MindPulse distraction handling failed:', error);
   } finally {
     notificationTabs.delete(tab.id);
   }
@@ -242,11 +293,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       lastUpdate: Date.now(),
     });
 
-    chrome.runtime.sendMessage({
+    void runtimeSendMessage({
       type: 'SESSION_UPDATE',
       data: request.data,
-    }).catch(() => {
-      // Popup might not be open, ignore error
     });
   }
 
@@ -305,62 +354,66 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
   void (async () => {
-    if (!notificationId.startsWith(NOTIFICATION_PREFIX)) {
-      return;
-    }
-
-    const tabId = Number(notificationId.slice(NOTIFICATION_PREFIX.length));
-    if (Number.isNaN(tabId)) {
-      return;
-    }
-
-    const state = await storageGet([
-      STORAGE_KEYS.activeCodingTabId,
-      STORAGE_KEYS.activeCodingUrl,
-      STORAGE_KEYS.pendingDistractionTabId,
-      STORAGE_KEYS.pendingDistractionSiteName,
-    ]);
-
-    const codingTabId = state[STORAGE_KEYS.activeCodingTabId];
-    const codingTabUrl = state[STORAGE_KEYS.activeCodingUrl];
-    const distractionTabId = state[STORAGE_KEYS.pendingDistractionTabId] || tabId;
-
-    await notificationsClear(notificationId);
-
-    if (buttonIndex === 0) {
-      if (codingTabId) {
-        await sendTabMessage(codingTabId, { type: 'PAUSE_SESSION' });
+    try {
+      if (!notificationId.startsWith(NOTIFICATION_PREFIX)) {
+        return;
       }
 
+      const tabId = Number(notificationId.slice(NOTIFICATION_PREFIX.length));
+      if (Number.isNaN(tabId)) {
+        return;
+      }
+
+      const state = await storageGet([
+        STORAGE_KEYS.activeCodingTabId,
+        STORAGE_KEYS.activeCodingUrl,
+        STORAGE_KEYS.pendingDistractionTabId,
+        STORAGE_KEYS.pendingDistractionSiteName,
+      ]);
+
+      const codingTabId = state[STORAGE_KEYS.activeCodingTabId];
+      const codingTabUrl = state[STORAGE_KEYS.activeCodingUrl];
+      const distractionTabId = state[STORAGE_KEYS.pendingDistractionTabId] || tabId;
+
+      await notificationsClear(notificationId);
+
+      if (buttonIndex === 0) {
+        if (codingTabId) {
+          await sendTabMessage(codingTabId, { type: 'PAUSE_SESSION' });
+        }
+
+        await storageSet({
+          [STORAGE_KEYS.sessionActive]: false,
+          [STORAGE_KEYS.sessionPaused]: true,
+          [STORAGE_KEYS.pendingDistractionTabId]: null,
+          [STORAGE_KEYS.pendingDistractionSiteName]: null,
+        });
+        return;
+      }
+
+      if (buttonIndex !== 1 || !codingTabId) {
+        return;
+      }
+
+      if (distractionTabId === codingTabId) {
+        if (codingTabUrl) {
+          await chrome.tabs.update(codingTabId, { url: codingTabUrl, active: true });
+        }
+      } else {
+        await chrome.tabs.remove(distractionTabId).catch(() => {});
+        await chrome.tabs.update(codingTabId, { active: true });
+      }
+
+      await sendTabMessage(codingTabId, { type: 'RESUME_SESSION' });
+
       await storageSet({
-        [STORAGE_KEYS.sessionActive]: false,
-        [STORAGE_KEYS.sessionPaused]: true,
+        [STORAGE_KEYS.sessionActive]: true,
+        [STORAGE_KEYS.sessionPaused]: false,
         [STORAGE_KEYS.pendingDistractionTabId]: null,
         [STORAGE_KEYS.pendingDistractionSiteName]: null,
       });
-      return;
+    } catch (error) {
+      console.error('MindPulse notification button handling failed:', error);
     }
-
-    if (buttonIndex !== 1 || !codingTabId) {
-      return;
-    }
-
-    if (distractionTabId === codingTabId) {
-      if (codingTabUrl) {
-        await chrome.tabs.update(codingTabId, { url: codingTabUrl, active: true });
-      }
-    } else {
-      await chrome.tabs.remove(distractionTabId).catch(() => {});
-      await chrome.tabs.update(codingTabId, { active: true });
-    }
-
-    await sendTabMessage(codingTabId, { type: 'RESUME_SESSION' });
-
-    await storageSet({
-      [STORAGE_KEYS.sessionActive]: true,
-      [STORAGE_KEYS.sessionPaused]: false,
-      [STORAGE_KEYS.pendingDistractionTabId]: null,
-      [STORAGE_KEYS.pendingDistractionSiteName]: null,
-    });
   })();
 });
