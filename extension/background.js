@@ -242,14 +242,14 @@ async function handleDistractionTab(tab, distractionSiteName) {
     const notificationId = `${NOTIFICATION_PREFIX}${tab.id}`;
     const created = await notificationsCreate(notificationId, {
       type: 'basic',
-      iconUrl: NOTIFICATION_ICON,
+      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       title: 'Hey, you have work to do! 👀',
-      message: `You switched to ${distractionSiteName}. Are you taking a break or distracted?`,
-      priority: 2,
+      message: 'You switched to a distracting site. Stay focused!',
       buttons: [
         { title: "I'm on a break 😴" },
-        { title: 'Back to work 💪' },
+        { title: 'Back to work 💪' }
       ],
+      requireInteraction: true
     });
 
     if (!created) {
