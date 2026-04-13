@@ -201,6 +201,7 @@ async function handleCodingTab(tab, codingSiteName) {
     [STORAGE_KEYS.pendingDistractionSiteName]: null,
   };
 
+  // Resume tracking if it was paused
   if (state[STORAGE_KEYS.sessionPaused]) {
     await sendTabMessage(tab.id, { type: 'RESUME_SESSION' });
     nextState[STORAGE_KEYS.sessionPaused] = false;
@@ -211,16 +212,11 @@ async function handleCodingTab(tab, codingSiteName) {
 }
 
 async function handleDistractionTab(tab, distractionSiteName) {
-  if (notificationTabs.has(tab.id)) {
-    return;
-  }
-
   const state = await storageGet([
     STORAGE_KEYS.sessionActive,
     STORAGE_KEYS.sessionPaused,
     STORAGE_KEYS.activeCodingTabId,
     STORAGE_KEYS.activeCodingUrl,
-    STORAGE_KEYS.pendingDistractionTabId,
   ]);
 
   if (!state[STORAGE_KEYS.sessionActive] || state[STORAGE_KEYS.sessionPaused]) {
@@ -232,13 +228,17 @@ async function handleDistractionTab(tab, distractionSiteName) {
     return;
   }
 
-  if (state[STORAGE_KEYS.pendingDistractionTabId] === tab.id) {
+  // Prevent duplicate notifications for the same tab
+  if (notificationTabs.has(tab.id)) {
     return;
   }
 
   notificationTabs.add(tab.id);
 
   try {
+    // Pause tracking on the coding tab
+    await sendTabMessage(activeCodingTabId, { type: 'PAUSE_SESSION' });
+
     const notificationId = `${NOTIFICATION_PREFIX}${tab.id}`;
     const created = await notificationsCreate(notificationId, {
       type: 'basic',
@@ -257,6 +257,8 @@ async function handleDistractionTab(tab, distractionSiteName) {
     }
 
     await storageSet({
+      [STORAGE_KEYS.sessionActive]: true,
+      [STORAGE_KEYS.sessionPaused]: true,
       [STORAGE_KEYS.pendingDistractionTabId]: tab.id,
       [STORAGE_KEYS.pendingDistractionSiteName]: distractionSiteName,
     });
@@ -378,13 +380,8 @@ chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) =
       await notificationsClear(notificationId);
 
       if (buttonIndex === 0) {
-        if (codingTabId) {
-          await sendTabMessage(codingTabId, { type: 'PAUSE_SESSION' });
-        }
-
+        // \"I'm on a break\" - session is already paused, just clear pending distraction
         await storageSet({
-          [STORAGE_KEYS.sessionActive]: false,
-          [STORAGE_KEYS.sessionPaused]: true,
           [STORAGE_KEYS.pendingDistractionTabId]: null,
           [STORAGE_KEYS.pendingDistractionSiteName]: null,
         });
