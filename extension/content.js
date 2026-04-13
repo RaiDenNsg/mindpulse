@@ -31,6 +31,8 @@ function getElapsedMilliseconds() {
 
 // Listen for all keydown events on the page
 document.addEventListener('keydown', (event) => {
+  console.log('[MindPulse] Keystroke detected:', event.key);
+  
   // Only track when in an input/textarea or code editor
   const target = event.target;
   const isInputElement = target.matches('input, textarea') || 

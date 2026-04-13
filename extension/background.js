@@ -170,45 +170,53 @@ function getDistractionSiteName(url) {
 }
 
 async function updateSessionStateFromTab(tab) {
-  if (!tab?.url) {
-    return;
-  }
+  try {
+    if (!tab?.url) {
+      return;
+    }
 
-  const codingSiteName = getCodingSiteName(tab.url);
-  if (codingSiteName) {
-    await handleCodingTab(tab, codingSiteName);
-    return;
-  }
+    const codingSiteName = getCodingSiteName(tab.url);
+    if (codingSiteName) {
+      await handleCodingTab(tab, codingSiteName);
+      return;
+    }
 
-  const distractionSiteName = getDistractionSiteName(tab.url);
-  if (distractionSiteName) {
-    await handleDistractionTab(tab, distractionSiteName);
+    const distractionSiteName = getDistractionSiteName(tab.url);
+    if (distractionSiteName) {
+      await handleDistractionTab(tab, distractionSiteName);
+    }
+  } catch (error) {
+    console.error('[MindPulse] updateSessionStateFromTab error:', error);
   }
 }
 
 async function handleCodingTab(tab, codingSiteName) {
-  const state = await storageGet([
-    STORAGE_KEYS.sessionPaused,
-    STORAGE_KEYS.pendingDistractionTabId,
-    STORAGE_KEYS.pendingDistractionSiteName,
-  ]);
+  try {
+    const state = await storageGet([
+      STORAGE_KEYS.sessionPaused,
+      STORAGE_KEYS.pendingDistractionTabId,
+      STORAGE_KEYS.pendingDistractionSiteName,
+    ]);
 
-  const nextState = {
-    [STORAGE_KEYS.sessionActive]: true,
-    [STORAGE_KEYS.activeCodingTabId]: tab.id,
-    [STORAGE_KEYS.activeCodingUrl]: tab.url,
-    [STORAGE_KEYS.pendingDistractionTabId]: null,
-    [STORAGE_KEYS.pendingDistractionSiteName]: null,
-  };
+    const nextState = {
+      [STORAGE_KEYS.sessionActive]: true,
+      [STORAGE_KEYS.activeCodingTabId]: tab.id,
+      [STORAGE_KEYS.activeCodingUrl]: tab.url,
+      [STORAGE_KEYS.pendingDistractionTabId]: null,
+      [STORAGE_KEYS.pendingDistractionSiteName]: null,
+    };
 
-  // Resume tracking if it was paused
-  if (state[STORAGE_KEYS.sessionPaused]) {
-    await sendTabMessage(tab.id, { type: 'RESUME_SESSION' });
-    nextState[STORAGE_KEYS.sessionPaused] = false;
+    // Resume tracking if it was paused
+    if (state[STORAGE_KEYS.sessionPaused]) {
+      await sendTabMessage(tab.id, { type: 'RESUME_SESSION' });
+      nextState[STORAGE_KEYS.sessionPaused] = false;
+    }
+
+    await storageSet(nextState);
+    console.log('MindPulse active coding tab:', codingSiteName, tab.id);
+  } catch (error) {
+    console.error('[MindPulse] handleCodingTab error:', error);
   }
-
-  await storageSet(nextState);
-  console.log('MindPulse active coding tab:', codingSiteName, tab.id);
 }
 
 async function handleDistractionTab(tab, distractionSiteName) {
@@ -270,13 +278,17 @@ async function handleDistractionTab(tab, distractionSiteName) {
 }
 
 async function initializeSessionState() {
-  const tabs = await new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, resolve);
-  });
+  try {
+    const tabs = await new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, resolve);
+    });
 
-  const activeTab = tabs[0];
-  if (activeTab?.url) {
-    await updateSessionStateFromTab(activeTab);
+    const activeTab = tabs[0];
+    if (activeTab?.url) {
+      await updateSessionStateFromTab(activeTab);
+    }
+  } catch (error) {
+    console.error('[MindPulse] initializeSessionState error:', error);
   }
 }
 
@@ -311,45 +323,63 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
   void (async () => {
-    const tab = await getTab(activeInfo.tabId);
-    await updateSessionStateFromTab(tab);
+    try {
+      const tab = await getTab(activeInfo.tabId);
+      await updateSessionStateFromTab(tab);
+    } catch (error) {
+      console.error('[MindPulse] Tab activated error:', error);
+    }
   })();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (!tab?.active || (!changeInfo.url && changeInfo.status !== 'complete')) {
-    return;
-  }
+  try {
+    if (!tab?.active || (!changeInfo.url && changeInfo.status !== 'complete')) {
+      return;
+    }
 
-  void updateSessionStateFromTab(tab || { id: tabId, url: changeInfo.url });
+    void (async () => {
+      try {
+        await updateSessionStateFromTab(tab || { id: tabId, url: changeInfo.url });
+      } catch (error) {
+        console.error('[MindPulse] Tab update state error:', error);
+      }
+    })();
+  } catch (error) {
+    console.error('[MindPulse] Tab updated error:', error);
+  }
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   void (async () => {
-    const state = await storageGet([
-      STORAGE_KEYS.activeCodingTabId,
-      STORAGE_KEYS.pendingDistractionTabId,
-    ]);
+    try {
+      const state = await storageGet([
+        STORAGE_KEYS.activeCodingTabId,
+        STORAGE_KEYS.pendingDistractionTabId,
+      ]);
 
-    const updates = {};
-    let shouldUpdate = false;
+      const updates = {};
+      let shouldUpdate = false;
 
-    if (state[STORAGE_KEYS.activeCodingTabId] === tabId) {
-      updates[STORAGE_KEYS.sessionActive] = false;
-      updates[STORAGE_KEYS.sessionPaused] = false;
-      updates[STORAGE_KEYS.activeCodingTabId] = null;
-      updates[STORAGE_KEYS.activeCodingUrl] = null;
-      shouldUpdate = true;
-    }
+      if (state[STORAGE_KEYS.activeCodingTabId] === tabId) {
+        updates[STORAGE_KEYS.sessionActive] = false;
+        updates[STORAGE_KEYS.sessionPaused] = false;
+        updates[STORAGE_KEYS.activeCodingTabId] = null;
+        updates[STORAGE_KEYS.activeCodingUrl] = null;
+        shouldUpdate = true;
+      }
 
-    if (state[STORAGE_KEYS.pendingDistractionTabId] === tabId) {
-      updates[STORAGE_KEYS.pendingDistractionTabId] = null;
-      updates[STORAGE_KEYS.pendingDistractionSiteName] = null;
-      shouldUpdate = true;
-    }
+      if (state[STORAGE_KEYS.pendingDistractionTabId] === tabId) {
+        updates[STORAGE_KEYS.pendingDistractionTabId] = null;
+        updates[STORAGE_KEYS.pendingDistractionSiteName] = null;
+        shouldUpdate = true;
+      }
 
-    if (shouldUpdate) {
-      await storageSet(updates);
+      if (shouldUpdate) {
+        await storageSet(updates);
+      }
+    } catch (error) {
+      console.error('[MindPulse] Tab removed error:', error);
     }
   })();
 });
