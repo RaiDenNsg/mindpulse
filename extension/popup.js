@@ -25,6 +25,25 @@ function createEmptyMetrics() {
   };
 }
 
+function normalizeStoredMetrics(sessionData) {
+  if (!sessionData) {
+    return createEmptyMetrics();
+  }
+
+  return {
+    keystrokeCount: Number(sessionData.keystrokes ?? 0),
+    backspaceCount: Number(sessionData.backspaces ?? 0),
+    typingSpeed: Number(sessionData.typingSpeed ?? 0),
+    focusScore: Number(sessionData.focusScore ?? 0),
+    cognitiveLoad: Number(sessionData.cognitiveLoad ?? 0),
+    elapsedSeconds: Number(sessionData.sessionDuration ?? 0),
+    istyping: false,
+    timestamp: Number(sessionData.timestamp ?? Date.now()),
+    platform: sessionData.platform || 'Unknown',
+    sessionStartTime: Date.now(),
+  };
+}
+
 function getFirestoreUserSessionsUrl(userId) {
   return `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${encodeURIComponent(userId)}/sessions?key=${FIREBASE_API_KEY}`;
 }
@@ -220,11 +239,11 @@ async function initializeAuthState() {
   }
 }
 
-// Request session data from content script
+// Read session data directly from storage
 async function fetchSessionData() {
   try {
-    const result = await storageGet(['currentSessionData', 'lastUpdate']);
-    const metrics = result.currentSessionData || createEmptyMetrics();
+    const result = await storageGet(['sessionData', 'lastUpdate']);
+    const metrics = normalizeStoredMetrics(result.sessionData);
     updateUI(metrics);
     currentMetrics = metrics;
   } catch (error) {
@@ -362,6 +381,16 @@ async function resetSession() {
   try {
     const resetMetrics = createEmptyMetrics();
     await storageSet({
+      sessionData: {
+        keystrokes: 0,
+        typingSpeed: 0,
+        focusScore: 0,
+        cognitiveLoad: 0,
+        sessionDuration: 0,
+        backspaces: 0,
+        platform: 'Unknown',
+        timestamp: Date.now(),
+      },
       currentSessionData: resetMetrics,
       lastUpdate: Date.now(),
     });

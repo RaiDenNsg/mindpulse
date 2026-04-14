@@ -11,25 +11,6 @@ let isSessionPaused = false;
 let pausedAt = null;
 let totalPausedMs = 0;
 
-function runtimeSendMessage(message) {
-  return new Promise((resolve) => {
-    try {
-      chrome.runtime.sendMessage(message, () => {
-        if (chrome.runtime.lastError) {
-          console.warn('[MindPulse] SESSION_UPDATE send failed:', chrome.runtime.lastError.message);
-          resolve(false);
-          return;
-        }
-
-        resolve(true);
-      });
-    } catch (error) {
-      console.error('[MindPulse] runtime.sendMessage failed:', error);
-      resolve(false);
-    }
-  });
-}
-
 // Initialize session data
 const initializeSession = () => {
   keystrokeCount = 0;
@@ -57,6 +38,27 @@ function isTrackableTarget(target) {
     target.matches('input, textarea') ||
     target.closest('[contenteditable], .cm-editor, [class*="ace"], [class*="monaco"]')
   );
+}
+
+function buildStorageSessionData(metrics) {
+  return {
+    keystrokes: metrics.keystrokeCount,
+    typingSpeed: metrics.typingSpeed,
+    focusScore: metrics.focusScore,
+    cognitiveLoad: metrics.cognitiveLoad,
+    sessionDuration: metrics.elapsedSeconds,
+    backspaces: metrics.backspaceCount,
+    platform: metrics.platform,
+    timestamp: metrics.timestamp,
+  };
+}
+
+function persistSessionData(metrics) {
+  chrome.storage.local.set({
+    sessionData: buildStorageSessionData(metrics),
+    currentSessionData: metrics,
+    lastUpdate: Date.now(),
+  });
 }
 
 // Listen for all keydown events on the page
@@ -90,13 +92,7 @@ document.addEventListener('keydown', (event) => {
   }, 5000);
 
   const sessionData = captureMetrics();
-  chrome.storage.local.set({
-    currentSessionData: sessionData,
-    lastUpdate: Date.now(),
-  });
-
-  // Explicit SESSION_UPDATE dispatch for background service worker.
-  void runtimeSendMessage({ type: 'SESSION_UPDATE', data: sessionData });
+  persistSessionData(sessionData);
 
   console.log('[MindPulse] tracked input key:', {
     key: event.key,
@@ -109,13 +105,7 @@ document.addEventListener('keydown', (event) => {
 // Calculate typing speed and other metrics every 30 seconds
 setInterval(() => {
   const sessionData = captureMetrics();
-  chrome.storage.local.set({
-    currentSessionData: sessionData,
-    lastUpdate: Date.now(),
-  });
-
-  // Explicit SESSION_UPDATE dispatch for background service worker.
-  void runtimeSendMessage({ type: 'SESSION_UPDATE', data: sessionData });
+  persistSessionData(sessionData);
 }, 30000); // Update every 30 seconds
 
 // Get current platform
@@ -175,11 +165,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     const metrics = captureMetrics();
-    chrome.storage.local.set({
-      currentSessionData: metrics,
-      lastUpdate: Date.now(),
-    });
-    void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
+    persistSessionData(metrics);
     sendResponse({ status: 'paused' });
   } else if (request.type === 'RESUME_SESSION') {
     if (isSessionPaused && pausedAt) {
@@ -189,11 +175,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     const metrics = captureMetrics();
-    chrome.storage.local.set({
-      currentSessionData: metrics,
-      lastUpdate: Date.now(),
-    });
-    void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
+    persistSessionData(metrics);
     sendResponse({ status: 'resumed' });
   }
 });
