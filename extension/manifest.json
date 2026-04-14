@@ -19,12 +19,12 @@
     ]
   },
   "host_permissions": [
-    "https://leetcode.com/*",
-    "https://www.leetcode.com/*",
-    "https://hackerrank.com/*",
-    "https://www.hackerrank.com/*",
-    "https://programiz.com/*",
-    "https://www.programiz.com/*",
+    "*://*.leetcode.com/*",
+    "*://leetcode.com/*",
+    "*://*.hackerrank.com/*",
+    "*://hackerrank.com/*",
+    "*://*.programiz.com/*",
+    "*://programiz.com/*",
     "https://firestore.googleapis.com/*",
     "https://www.googleapis.com/*",
     "https://identitytoolkit.googleapis.com/*"
@@ -32,12 +32,12 @@
   "content_scripts": [
     {
       "matches": [
-        "https://leetcode.com/*",
-        "https://www.leetcode.com/*",
-        "https://hackerrank.com/*",
-        "https://www.hackerrank.com/*",
-        "https://programiz.com/*",
-        "https://www.programiz.com/*"
+        "*://*.leetcode.com/*",
+        "*://leetcode.com/*",
+        "*://*.hackerrank.com/*",
+        "*://hackerrank.com/*",
+        "*://*.programiz.com/*",
+        "*://programiz.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_start"

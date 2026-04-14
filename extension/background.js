@@ -2,6 +2,7 @@
 
 const CODING_SITES = [
   { domain: 'leetcode.com', name: 'LeetCode' },
+  { domain: 'hackerrank.com', name: 'HackerRank' },
   { domain: 'programiz.com', name: 'Programiz' },
 ];
 
@@ -26,6 +27,7 @@ const STORAGE_KEYS = {
 
 const NOTIFICATION_PREFIX = 'mindpulse-distraction-';
 const NOTIFICATION_ICON = createNotificationIconDataUrl();
+const MESSAGE_SOURCE_BACKGROUND = 'mindpulse-background';
 
 const notificationTabs = new Set();
 
@@ -151,8 +153,21 @@ function getHostname(url) {
   }
 }
 
+function normalizeHostname(hostname) {
+  if (!hostname) {
+    return '';
+  }
+
+  return hostname.replace(/^www\./, '').replace(/^m\./, '');
+}
+
 function matchesDomain(hostname, domain) {
-  return hostname === domain || hostname.endsWith(`.${domain}`);
+  const normalizedHostname = normalizeHostname(hostname);
+  const normalizedDomain = normalizeHostname(domain);
+  return (
+    normalizedHostname === normalizedDomain ||
+    normalizedHostname.endsWith(`.${normalizedDomain}`)
+  );
 }
 
 function getSiteName(url, sites) {
@@ -302,14 +317,34 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'SESSION_UPDATE') {
+    if (request.source === MESSAGE_SOURCE_BACKGROUND) {
+      return;
+    }
+
+    const detectedPlatform = getCodingSiteName(sender?.tab?.url) || getCodingSiteName(sender?.url);
+    const mergedData = {
+      ...request.data,
+      platform:
+        request?.data?.platform && request.data.platform !== 'Unknown'
+          ? request.data.platform
+          : detectedPlatform || request?.data?.platform || 'Unknown',
+    };
+
+    console.log('[MindPulse] SESSION_UPDATE received:', {
+      tabId: sender?.tab?.id ?? null,
+      platform: mergedData.platform,
+      keystrokeCount: mergedData.keystrokeCount,
+    });
+
     chrome.storage.local.set({
-      currentSessionData: request.data,
+      currentSessionData: mergedData,
       lastUpdate: Date.now(),
     });
 
     void runtimeSendMessage({
       type: 'SESSION_UPDATE',
-      data: request.data,
+      data: mergedData,
+      source: MESSAGE_SOURCE_BACKGROUND,
     });
   }
 

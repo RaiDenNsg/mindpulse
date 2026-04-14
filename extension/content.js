@@ -11,6 +11,24 @@ let isSessionPaused = false;
 let pausedAt = null;
 let totalPausedMs = 0;
 
+function runtimeSendMessage(message) {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage(message, () => {
+        if (chrome.runtime.lastError) {
+          resolve(false);
+          return;
+        }
+
+        resolve(true);
+      });
+    } catch (error) {
+      console.error('[MindPulse] runtime.sendMessage failed:', error);
+      resolve(false);
+    }
+  });
+}
+
 // Initialize session data
 const initializeSession = () => {
   keystrokeCount = 0;
@@ -29,14 +47,28 @@ function getElapsedMilliseconds() {
   return Math.max(0, now - sessionStartTime - pausedDuration);
 }
 
+function isTrackableTarget(target) {
+  if (!target || !(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(
+    target.matches('input, textarea') ||
+    target.closest('[contenteditable], .cm-editor, [class*="ace"], [class*="monaco"]')
+  );
+}
+
 // Listen for all keydown events on the page
 document.addEventListener('keydown', (event) => {
-  console.log('[MindPulse] Keystroke detected:', event.key);
-  
+  console.log('[MindPulse] keydown event:', event.key);
+
+  if (isSessionPaused) {
+    return;
+  }
+
   // Only track when in an input/textarea or code editor
   const target = event.target;
-  const isInputElement = target.matches('input, textarea') || 
-                         target.closest('[contenteditable], .cm-editor, [class*="ace"], [class*="monaco"]');
+  const isInputElement = isTrackableTarget(target);
 
   if (!isInputElement) return;
 
@@ -55,43 +87,24 @@ document.addEventListener('keydown', (event) => {
   typingTimeout = setTimeout(() => {
     istyping = false;
   }, 5000);
+
+  const metrics = captureMetrics();
+  chrome.storage.local.set({ currentSessionData: metrics });
+  void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
+
+  console.log('[MindPulse] tracked input key:', {
+    key: event.key,
+    keystrokeCount,
+    backspaceCount,
+    platform: metrics.platform,
+  });
 }, true); // Use capture phase to catch all events
 
 // Calculate typing speed and other metrics every 30 seconds
 setInterval(() => {
-  const now = Date.now();
-  const elapsedSeconds = getElapsedMilliseconds() / 1000;
-
-  if (keystrokeCount === 0) return; // Skip if no activity
-
-  const typingSpeedWPM = elapsedSeconds > 0 
-    ? Math.round((keystrokeCount / 5) / (elapsedSeconds / 60))
-    : 0;
-
-  const focusScore = Math.max(0, Math.min(100, 100 - (backspaceCount / keystrokeCount) * 50));
-
-  const cognitiveLoad = Math.max(0, Math.min(100, 
-    (backspaceCount * 3) + ((elapsedSeconds / keystrokeCount) * 2) - (typingSpeedWPM / 10)
-  ));
-
-  const sessionData = {
-    keystrokeCount,
-    backspaceCount,
-    typingSpeed: typingSpeedWPM,
-    focusScore: Math.round(focusScore),
-    cognitiveLoad: Math.round(cognitiveLoad),
-    elapsedSeconds: Math.round(elapsedSeconds),
-    istyping,
-    timestamp: now,
-    platform: getPlatform(),
-    sessionStartTime
-  };
-
-  // Send to popup and background
+  const sessionData = captureMetrics();
   chrome.storage.local.set({ currentSessionData: sessionData });
-  chrome.runtime.sendMessage({ type: 'SESSION_UPDATE', data: sessionData }).catch(() => {
-    // Popup might not be open, ignore error
-  });
+  void runtimeSendMessage({ type: 'SESSION_UPDATE', data: sessionData });
 }, 30000); // Update every 30 seconds
 
 // Get current platform
@@ -152,9 +165,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     const metrics = captureMetrics();
     chrome.storage.local.set({ currentSessionData: metrics });
-    chrome.runtime.sendMessage({ type: 'SESSION_UPDATE', data: metrics }).catch(() => {
-      // Popup might not be open, ignore error
-    });
+    void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
     sendResponse({ status: 'paused' });
   } else if (request.type === 'RESUME_SESSION') {
     if (isSessionPaused && pausedAt) {
@@ -165,9 +176,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     const metrics = captureMetrics();
     chrome.storage.local.set({ currentSessionData: metrics });
-    chrome.runtime.sendMessage({ type: 'SESSION_UPDATE', data: metrics }).catch(() => {
-      // Popup might not be open, ignore error
-    });
+    void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
     sendResponse({ status: 'resumed' });
   }
 });
