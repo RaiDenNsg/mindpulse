@@ -336,10 +336,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       keystrokeCount: mergedData.keystrokeCount,
     });
 
-    chrome.storage.local.set({
-      currentSessionData: mergedData,
-      lastUpdate: Date.now(),
-    });
+    chrome.storage.local.set(
+      {
+        currentSessionData: mergedData,
+        lastUpdate: Date.now(),
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error('[MindPulse] Failed to store SESSION_UPDATE:', chrome.runtime.lastError.message);
+          return;
+        }
+
+        console.log('[MindPulse] SESSION_UPDATE stored in chrome.storage.local');
+      }
+    );
 
     void runtimeSendMessage({
       type: 'SESSION_UPDATE',

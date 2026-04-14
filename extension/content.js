@@ -16,6 +16,7 @@ function runtimeSendMessage(message) {
     try {
       chrome.runtime.sendMessage(message, () => {
         if (chrome.runtime.lastError) {
+          console.warn('[MindPulse] SESSION_UPDATE send failed:', chrome.runtime.lastError.message);
           resolve(false);
           return;
         }
@@ -88,22 +89,32 @@ document.addEventListener('keydown', (event) => {
     istyping = false;
   }, 5000);
 
-  const metrics = captureMetrics();
-  chrome.storage.local.set({ currentSessionData: metrics });
-  void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
+  const sessionData = captureMetrics();
+  chrome.storage.local.set({
+    currentSessionData: sessionData,
+    lastUpdate: Date.now(),
+  });
+
+  // Explicit SESSION_UPDATE dispatch for background service worker.
+  void runtimeSendMessage({ type: 'SESSION_UPDATE', data: sessionData });
 
   console.log('[MindPulse] tracked input key:', {
     key: event.key,
     keystrokeCount,
     backspaceCount,
-    platform: metrics.platform,
+    platform: sessionData.platform,
   });
 }, true); // Use capture phase to catch all events
 
 // Calculate typing speed and other metrics every 30 seconds
 setInterval(() => {
   const sessionData = captureMetrics();
-  chrome.storage.local.set({ currentSessionData: sessionData });
+  chrome.storage.local.set({
+    currentSessionData: sessionData,
+    lastUpdate: Date.now(),
+  });
+
+  // Explicit SESSION_UPDATE dispatch for background service worker.
   void runtimeSendMessage({ type: 'SESSION_UPDATE', data: sessionData });
 }, 30000); // Update every 30 seconds
 
@@ -164,7 +175,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     const metrics = captureMetrics();
-    chrome.storage.local.set({ currentSessionData: metrics });
+    chrome.storage.local.set({
+      currentSessionData: metrics,
+      lastUpdate: Date.now(),
+    });
     void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
     sendResponse({ status: 'paused' });
   } else if (request.type === 'RESUME_SESSION') {
@@ -175,7 +189,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     const metrics = captureMetrics();
-    chrome.storage.local.set({ currentSessionData: metrics });
+    chrome.storage.local.set({
+      currentSessionData: metrics,
+      lastUpdate: Date.now(),
+    });
     void runtimeSendMessage({ type: 'SESSION_UPDATE', data: metrics });
     sendResponse({ status: 'resumed' });
   }
