@@ -4,11 +4,49 @@ let currentMetrics = null;
 let currentUser = null;
 
 const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
+const FOCUS_MODE_STORAGE_KEY = 'focusMode';
+const DEFAULT_FOCUS_MODE = 2;
 
 const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
 const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
 const FIREBASE_SIGN_IN_WITH_IDP_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${FIREBASE_API_KEY}`;
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
+
+let currentFocusMode = DEFAULT_FOCUS_MODE;
+
+function normalizeFocusMode(value) {
+  const mode = Number(value);
+  return mode === 1 || mode === 2 || mode === 3 ? mode : DEFAULT_FOCUS_MODE;
+}
+
+function updateFocusModeButtons(mode) {
+  currentFocusMode = normalizeFocusMode(mode);
+
+  document.querySelectorAll('[data-focus-mode]').forEach((button) => {
+    const buttonMode = normalizeFocusMode(button.dataset.focusMode);
+    const isActive = buttonMode === currentFocusMode;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+}
+
+async function initializeFocusMode() {
+  const stored = await storageGet([FOCUS_MODE_STORAGE_KEY]);
+  const storedMode = stored[FOCUS_MODE_STORAGE_KEY];
+  const nextMode = normalizeFocusMode(storedMode);
+
+  if (storedMode == null) {
+    await storageSet({ [FOCUS_MODE_STORAGE_KEY]: DEFAULT_FOCUS_MODE });
+  }
+
+  updateFocusModeButtons(nextMode);
+}
+
+async function setFocusMode(mode) {
+  const nextMode = normalizeFocusMode(mode);
+  updateFocusModeButtons(nextMode);
+  await storageSet({ [FOCUS_MODE_STORAGE_KEY]: nextMode });
+}
 
 function createEmptyMetrics() {
   return {
@@ -411,6 +449,12 @@ document.getElementById('signInBtn').addEventListener('click', () => {
 });
 document.getElementById('signOutBtn').addEventListener('click', signOutGoogle);
 
+document.querySelectorAll('[data-focus-mode]').forEach((button) => {
+  button.addEventListener('click', () => {
+    void setFocusMode(button.dataset.focusMode);
+  });
+});
+
 document.getElementById('syncBtn').addEventListener('click', async () => {
   const syncBtn = document.getElementById('syncBtn');
 
@@ -460,6 +504,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Initial load
+initializeFocusMode().catch((error) => {
+  console.error('Failed to initialize focus mode:', error);
+});
 initializeAuthState().then(fetchSessionData);
 
 // Refresh data every 5 seconds

@@ -23,7 +23,10 @@ const STORAGE_KEYS = {
   activeCodingUrl: 'activeCodingUrl',
   pendingDistractionTabId: 'pendingDistractionTabId',
   pendingDistractionSiteName: 'pendingDistractionSiteName',
+  focusMode: 'focusMode',
 };
+
+const DEFAULT_FOCUS_MODE = 2;
 
 const NOTIFICATION_PREFIX = 'mindpulse-distraction-';
 const NOTIFICATION_ICON = createNotificationIconDataUrl();
@@ -184,6 +187,11 @@ function getDistractionSiteName(url) {
   return getSiteName(url, DISTRACTION_SITES);
 }
 
+function normalizeFocusMode(value) {
+  const mode = Number(value);
+  return mode === 1 || mode === 2 || mode === 3 ? mode : DEFAULT_FOCUS_MODE;
+}
+
 async function updateSessionStateFromTab(tab) {
   try {
     if (!tab?.url) {
@@ -235,37 +243,67 @@ async function handleCodingTab(tab, codingSiteName) {
 }
 
 async function handleDistractionTab(tab, distractionSiteName) {
-  const state = await storageGet([
-    STORAGE_KEYS.sessionActive,
-    STORAGE_KEYS.sessionPaused,
-    STORAGE_KEYS.activeCodingTabId,
-    STORAGE_KEYS.activeCodingUrl,
-  ]);
-
-  if (!state[STORAGE_KEYS.sessionActive] || state[STORAGE_KEYS.sessionPaused]) {
-    return;
-  }
-
-  const activeCodingTabId = state[STORAGE_KEYS.activeCodingTabId];
-  if (!activeCodingTabId) {
-    return;
-  }
-
-  // Prevent duplicate notifications for the same tab
-  if (notificationTabs.has(tab.id)) {
-    return;
-  }
-
-  notificationTabs.add(tab.id);
-
   try {
+    const state = await storageGet([
+      STORAGE_KEYS.sessionActive,
+      STORAGE_KEYS.sessionPaused,
+      STORAGE_KEYS.activeCodingTabId,
+      STORAGE_KEYS.activeCodingUrl,
+      STORAGE_KEYS.focusMode,
+    ]);
+
+    if (!state[STORAGE_KEYS.sessionActive]) {
+      return;
+    }
+
+    const activeCodingTabId = state[STORAGE_KEYS.activeCodingTabId];
+    const focusMode = normalizeFocusMode(state[STORAGE_KEYS.focusMode]);
+
+    if (focusMode === 1) {
+      return;
+    }
+
+    if (state[STORAGE_KEYS.sessionPaused] && focusMode !== 3) {
+      return;
+    }
+
+    if (focusMode === 3) {
+      const codingTab = activeCodingTabId ? await getTab(activeCodingTabId) : null;
+
+      if (codingTab) {
+        await chrome.tabs.update(activeCodingTabId, { active: true });
+        await sendTabMessage(activeCodingTabId, { type: 'RESUME_SESSION' });
+      }
+
+      await chrome.tabs.remove(tab.id).catch(() => {});
+
+      await storageSet({
+        [STORAGE_KEYS.sessionActive]: true,
+        [STORAGE_KEYS.sessionPaused]: false,
+        [STORAGE_KEYS.pendingDistractionTabId]: null,
+        [STORAGE_KEYS.pendingDistractionSiteName]: null,
+      });
+      return;
+    }
+
+    if (!activeCodingTabId) {
+      return;
+    }
+
+    // Prevent duplicate notifications for the same tab
+    if (notificationTabs.has(tab.id)) {
+      return;
+    }
+
+    notificationTabs.add(tab.id);
+
     // Pause tracking on the coding tab
     await sendTabMessage(activeCodingTabId, { type: 'PAUSE_SESSION' });
 
     const notificationId = `${NOTIFICATION_PREFIX}${tab.id}`;
     const created = await notificationsCreate(notificationId, {
       type: 'basic',
-      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      iconUrl: NOTIFICATION_ICON,
       title: 'Hey, you have work to do! 👀',
       message: 'You switched to a distracting site. Stay focused!',
       buttons: [
