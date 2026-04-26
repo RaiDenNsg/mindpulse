@@ -28,6 +28,12 @@ const STORAGE_KEYS = {
 
 const DEFAULT_FOCUS_MODE = 2;
 const MESSAGE_SOURCE_BACKGROUND = 'mindpulse-background';
+const STUCK_CHECK_INTERVAL_MS = 30000;
+const STUCK_IDLE_THRESHOLD_MS = 120000;
+const STUCK_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
+const STUCK_BACKSPACE_DELTA_THRESHOLD = 15;
+
+let lastBackspaceSnapshot = null;
 
 const notificationTabs = new Set();
 
@@ -130,6 +136,64 @@ function getDistractionSiteName(url) {
 function normalizeFocusMode(value) {
   const mode = Number.parseInt(value, 10);
   return mode === 1 || mode === 2 || mode === 3 ? mode : DEFAULT_FOCUS_MODE;
+}
+
+async function checkStuckDetection() {
+  try {
+    const now = Date.now();
+    const state = await storageGet([
+      STORAGE_KEYS.focusMode,
+      STORAGE_KEYS.activeCodingTabId,
+      'sessionData',
+      'lastKeystrokeTime',
+      'lastStuckAlert',
+    ]);
+
+    const focusMode = normalizeFocusMode(state[STORAGE_KEYS.focusMode]);
+    if (focusMode !== 2 && focusMode !== 3) {
+      return;
+    }
+
+    const sessionData = state.sessionData || {};
+    const totalKeystrokes = Number(sessionData.keystrokes || 0);
+    if (totalKeystrokes <= 10) {
+      return;
+    }
+
+    const totalBackspaces = Number(sessionData.backspaces || 0);
+    const backspacesInWindow =
+      lastBackspaceSnapshot == null ? 0 : Math.max(0, totalBackspaces - lastBackspaceSnapshot);
+    lastBackspaceSnapshot = totalBackspaces;
+
+    const lastKeystrokeTime = Number(state.lastKeystrokeTime || 0);
+    const isIdleStuck =
+      lastKeystrokeTime > 0 && now - lastKeystrokeTime > STUCK_IDLE_THRESHOLD_MS;
+    const isBackspaceStuck = backspacesInWindow > STUCK_BACKSPACE_DELTA_THRESHOLD;
+
+    if (!isIdleStuck && !isBackspaceStuck) {
+      return;
+    }
+
+    const lastStuckAlert = Number(state.lastStuckAlert || 0);
+    if (lastStuckAlert > 0 && now - lastStuckAlert < STUCK_ALERT_COOLDOWN_MS) {
+      return;
+    }
+
+    const activeCodingTabId = state[STORAGE_KEYS.activeCodingTabId];
+    if (!activeCodingTabId) {
+      return;
+    }
+
+    const codingTab = await getTab(activeCodingTabId);
+    if (!codingTab) {
+      return;
+    }
+
+    await storageSet({ lastStuckAlert: now });
+    await sendTabMessage(activeCodingTabId, { type: 'SHOW_STUCK_OVERLAY' });
+  } catch (error) {
+    console.error('[MindPulse] stuck detection failed:', error);
+  }
 }
 
 async function updateSessionStateFromTab(tab) {
@@ -295,6 +359,10 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup.addListener(() => {
   void initializeSessionState();
 });
+
+setInterval(() => {
+  void checkStuckDetection();
+}, STUCK_CHECK_INTERVAL_MS);
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'SESSION_UPDATE') {

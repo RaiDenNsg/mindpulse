@@ -10,6 +10,7 @@ let typingTimeout;
 let isSessionPaused = false;
 let pausedAt = null;
 let totalPausedMs = 0;
+let lastTypedText = '';
 
 // Initialize session data
 const initializeSession = () => {
@@ -21,7 +22,25 @@ const initializeSession = () => {
   isSessionPaused = false;
   pausedAt = null;
   totalPausedMs = 0;
+  lastTypedText = '';
 };
+
+function updateLastTypedText(key) {
+  if (key === 'Backspace' || key === 'Delete') {
+    lastTypedText = lastTypedText.slice(0, -1);
+    return;
+  }
+
+  if (key === 'Enter') {
+    lastTypedText += ' ';
+  } else if (key.length === 1) {
+    lastTypedText += key;
+  }
+
+  if (lastTypedText.length > 50) {
+    lastTypedText = lastTypedText.slice(-50);
+  }
+}
 
 function getElapsedMilliseconds() {
   const now = Date.now();
@@ -57,6 +76,8 @@ function persistSessionData(metrics) {
   chrome.storage.local.set({
     sessionData: buildStorageSessionData(metrics),
     currentSessionData: metrics,
+    lastTypedText: lastTypedText,
+    lastKeystrokeTime: Date.now(),
     lastUpdate: Date.now(),
   });
 }
@@ -82,6 +103,8 @@ document.addEventListener('keydown', (event) => {
     // Count actual character inputs
     keystrokeCount++;
   }
+
+  updateLastTypedText(event.key);
 
   istyping = true;
   clearTimeout(typingTimeout);
@@ -157,6 +180,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ data: metrics });
   } else if (request.type === 'RESET_SESSION') {
     initializeSession();
+    lastTypedText = '';
     sendResponse({ status: 'reset' });
   } else if (request.type === 'PAUSE_SESSION') {
     if (!isSessionPaused) {

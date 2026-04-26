@@ -136,14 +136,16 @@ function ensureStyles() {
       border-color: #3a3a3a;
     }
 
-    #${OVERLAY_ID} button[data-action='back'] {
+    #${OVERLAY_ID} button[data-action='back'],
+    #${OVERLAY_ID} button[data-action='find-help'] {
       background: #ffffff;
       color: #000000;
       border-color: #ffffff;
       font-weight: 700;
     }
 
-    #${OVERLAY_ID} button[data-action='back']:hover {
+    #${OVERLAY_ID} button[data-action='back']:hover,
+    #${OVERLAY_ID} button[data-action='find-help']:hover {
       background: #f2f2f2;
       border-color: #f2f2f2;
     }
@@ -195,12 +197,46 @@ function sendBackgroundMessage(type) {
   }
 }
 
-function showOverlay() {
+function storageGetLocal(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, resolve);
+  });
+}
+
+function storageRemoveLocal(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(keys, resolve);
+  });
+}
+
+function buildSmartSearchUrl(lastTypedText) {
+  const query = `${lastTypedText} programming help`;
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showOverlay(options = {}) {
   ensureStyles();
 
   if (!document.body) {
     return;
   }
+
+  const {
+    mode = 'distraction',
+    message = 'You left your session',
+    submessage = 'Your session is still running.',
+    showFindHelp = false,
+    searchText = '',
+  } = options;
 
   const existingCard = document.getElementById(OVERLAY_ID);
   const existingBackdrop = document.getElementById(BACKDROP_ID);
@@ -215,6 +251,22 @@ function showOverlay() {
 
   const overlay = document.createElement('div');
   overlay.id = OVERLAY_ID;
+  overlay.dataset.mode = mode;
+
+  const escapedSubmessage = submessage ? escapeHtml(submessage) : '';
+  const submessageHtml = escapedSubmessage
+    ? `<div class="mindpulse-submessage">${escapedSubmessage}</div>`
+    : '';
+
+  const actionsHtml = showFindHelp
+    ? `
+      <button type="button" data-action="find-help">Find help</button>
+      <button type="button" data-action="take-break">Take a break</button>
+    `
+    : `
+      <button type="button" data-action="break">Taking a break</button>
+      <button type="button" data-action="back">Back to work</button>
+    `;
 
   overlay.innerHTML = `
     <div class="mindpulse-inner">
@@ -222,25 +274,31 @@ function showOverlay() {
         <div class="mindpulse-logo">MP</div>
         <div class="mindpulse-brand-text">
           <div class="mindpulse-title">MindPulse</div>
-          <div class="mindpulse-message">You left your session</div>
-          <div class="mindpulse-submessage">Your session is still running.</div>
+          <div class="mindpulse-message">${escapeHtml(message)}</div>
+          ${submessageHtml}
         </div>
       </div>
       <div class="mindpulse-actions">
-        <button type="button" data-action="break">Taking a break</button>
-        <button type="button" data-action="back">Back to work</button>
+        ${actionsHtml}
       </div>
     </div>
   `;
 
-  overlay.addEventListener('click', (event) => {
+  overlay.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action]');
     if (!button) {
       return;
     }
 
     const action = button.getAttribute('data-action');
-    if (action === 'back') {
+
+    if (action === 'find-help') {
+      const url = buildSmartSearchUrl(searchText || 'programming issue');
+      window.open(url, '_blank', 'noopener');
+      await storageRemoveLocal('lastTypedText');
+    } else if (action === 'take-break') {
+      await storageRemoveLocal('lastTypedText');
+    } else if (action === 'back') {
       sendBackgroundMessage('BACK_TO_WORK');
     } else {
       sendBackgroundMessage('TAKING_BREAK');
@@ -257,8 +315,34 @@ function showOverlay() {
   });
 }
 
+async function showStuckOverlay() {
+  const state = await storageGetLocal(['lastTypedText']);
+  const rawText = String(state.lastTypedText || '').trim();
+  const preview = rawText ? rawText.slice(0, 30) : '';
+  const stuckSubtext = preview ? `Stuck on: ${preview}...` : '';
+
+  showOverlay({
+    mode: 'stuck',
+    message: 'Looks like you\'re stuck',
+    submessage: stuckSubtext,
+    showFindHelp: true,
+    searchText: rawText || 'programming issue',
+  });
+
+  await storageRemoveLocal('lastTypedText');
+}
+
 chrome.runtime.onMessage.addListener((request) => {
   if (request?.type === 'SHOW_DISTRACTION_OVERLAY') {
-    showOverlay();
+    showOverlay({
+      mode: 'distraction',
+      message: 'You left your session',
+      submessage: 'Your session is still running.',
+      showFindHelp: false,
+    });
+  }
+
+  if (request?.type === 'SHOW_STUCK_OVERLAY') {
+    void showStuckOverlay();
   }
 });

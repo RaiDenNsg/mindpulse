@@ -500,6 +500,8 @@ async function resetSession() {
         timestamp: Date.now(),
       },
       currentSessionData: resetMetrics,
+      lastTypedText: '',
+      lastKeystrokeTime: Date.now(),
       lastUpdate: Date.now(),
     });
 
