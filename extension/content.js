@@ -11,6 +11,7 @@ let isSessionPaused = false;
 let pausedAt = null;
 let totalPausedMs = 0;
 let lastTypedText = '';
+let lastKeystrokeTime = 0;
 
 // Initialize session data
 const initializeSession = () => {
@@ -77,7 +78,6 @@ function persistSessionData(metrics) {
     sessionData: buildStorageSessionData(metrics),
     currentSessionData: metrics,
     lastTypedText: lastTypedText,
-    lastKeystrokeTime: Date.now(),
     lastUpdate: Date.now(),
   });
 }
@@ -95,6 +95,9 @@ document.addEventListener('keydown', (event) => {
   const isInputElement = isTrackableTarget(target);
 
   if (!isInputElement) return;
+
+  lastKeystrokeTime = Date.now();
+  chrome.storage.local.set({ lastKeystrokeTime });
 
   // Track backspace/delete separately
   if (event.key === 'Backspace' || event.key === 'Delete') {
@@ -181,6 +184,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.type === 'RESET_SESSION') {
     initializeSession();
     lastTypedText = '';
+    lastKeystrokeTime = 0;
     sendResponse({ status: 'reset' });
   } else if (request.type === 'PAUSE_SESSION') {
     if (!isSessionPaused) {
