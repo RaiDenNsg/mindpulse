@@ -358,6 +358,24 @@ function formatTimestamp(timestamp) {
   return `${hours}h ago`;
 }
 
+function getTrackingLabel(platform) {
+  const normalized = String(platform || '').trim().toLowerCase();
+
+  if (normalized === 'leetcode') {
+    return 'LeetCode';
+  }
+
+  if (normalized === 'hackerrank') {
+    return 'HackerRank';
+  }
+
+  if (normalized === 'programiz') {
+    return 'Programiz';
+  }
+
+  return null;
+}
+
 // Update UI with metrics
 function updateUI(metrics) {
   const setText = (id, value) => {
@@ -373,11 +391,10 @@ function updateUI(metrics) {
   setText('cognitiveLoad', metrics.cognitiveLoad);
   setText('backspaceCount', metrics.backspaceCount);
   setText('sessionTime', formatTime(metrics.elapsedSeconds));
+  const trackingPlatform = getTrackingLabel(metrics.platform);
   setText(
     'timestamp',
-    metrics.platform && metrics.platform !== 'Unknown'
-      ? `Tracking: ${metrics.platform}`
-      : 'Not tracking'
+    trackingPlatform ? `Tracking: ${trackingPlatform}` : 'Not tracking'
   );
 
   const syncBtn = document.getElementById('syncBtn');
