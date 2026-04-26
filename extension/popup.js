@@ -146,19 +146,28 @@ function setAuthUI(user) {
   const userInfo = document.getElementById('userInfo');
   const userName = document.getElementById('userName');
   const userEmail = document.getElementById('userEmail');
+  const headerUserMeta = document.getElementById('headerUserMeta');
   const headerUserName = document.getElementById('headerUserName');
+  const statusUserName = document.getElementById('statusUserName');
   const syncBtn = document.getElementById('syncBtn');
 
   if (user && user.userId) {
     signInBtn.classList.add('hidden');
     userInfo.classList.remove('hidden');
-    userName.textContent = user.name || '';
+    const hasName = Boolean(user.name && user.name.trim());
+    const normalizedName = hasName ? user.name.trim() : '';
+
+    userName.textContent = normalizedName;
     userEmail.textContent = user.email || 'Signed in';
 
-    if (headerUserName) {
-      const hasName = Boolean(user.name && user.name.trim());
-      headerUserName.textContent = hasName ? user.name.trim() : '';
-      headerUserName.classList.toggle('hidden', !hasName);
+    if (headerUserMeta && headerUserName) {
+      headerUserName.textContent = normalizedName;
+      headerUserMeta.classList.toggle('hidden', !hasName);
+    }
+
+    if (statusUserName) {
+      statusUserName.textContent = normalizedName;
+      statusUserName.classList.toggle('hidden', !hasName);
     }
 
     syncBtn.disabled = currentMetrics ? false : true;
@@ -166,9 +175,14 @@ function setAuthUI(user) {
     signInBtn.classList.remove('hidden');
     userInfo.classList.add('hidden');
 
-    if (headerUserName) {
+    if (headerUserMeta && headerUserName) {
       headerUserName.textContent = '';
-      headerUserName.classList.add('hidden');
+      headerUserMeta.classList.add('hidden');
+    }
+
+    if (statusUserName) {
+      statusUserName.textContent = '';
+      statusUserName.classList.add('hidden');
     }
 
     syncBtn.disabled = true;
@@ -341,8 +355,12 @@ function updateUI(metrics) {
   setText('cognitiveLoad', metrics.cognitiveLoad);
   setText('backspaceCount', metrics.backspaceCount);
   setText('sessionTime', formatTime(metrics.elapsedSeconds));
-  setText('platformBadge', metrics.platform);
-  setText('timestamp', `Last updated: ${formatTimestamp(metrics.timestamp)}`);
+  setText(
+    'timestamp',
+    metrics.platform && metrics.platform !== 'Unknown'
+      ? `Tracking: ${metrics.platform}`
+      : 'Not tracking'
+  );
 
   const syncBtn = document.getElementById('syncBtn');
   if (syncBtn) {
@@ -464,7 +482,11 @@ document.getElementById('resetBtn').addEventListener('click', resetSession);
 document.getElementById('signInBtn').addEventListener('click', () => {
   void signInWithGoogle(true);
 });
-document.getElementById('signOutBtn').addEventListener('click', signOutGoogle);
+
+const headerSignOut = document.getElementById('headerSignOut');
+if (headerSignOut) {
+  headerSignOut.addEventListener('click', signOutGoogle);
+}
 
 document.querySelectorAll('[data-focus-mode]').forEach((button) => {
   button.addEventListener('click', () => {

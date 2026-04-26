@@ -10,10 +10,17 @@
   <div class="container">
     <div class="header">
       <div class="title-group">
-        <div class="title">MindPulse</div>
+        <div class="title-row">
+          <div class="logo-mark" aria-hidden="true">MP</div>
+          <div class="title">MindPulse</div>
+        </div>
         <div class="subtitle">Focus Tracker</div>
       </div>
-      <div class="header-user hidden" id="headerUserName"></div>
+      <div class="header-user hidden" id="headerUserMeta">
+        <span id="headerUserName"></span>
+        <span class="header-separator" aria-hidden="true">·</span>
+        <button type="button" id="headerSignOut" class="header-signout">Sign out</button>
+      </div>
     </div>
 
     <div class="mode-group" aria-label="Focus mode selector">
@@ -31,7 +38,7 @@
     <div class="status-section">
       <div class="status-indicator online"></div>
       <span class="status-text">Connected</span>
-      <span class="platform-text" id="platformBadge">—</span>
+      <span class="status-user hidden" id="statusUserName"></span>
     </div>
 
     <div class="auth-section" id="authSection">
@@ -41,7 +48,6 @@
           <div class="user-name" id="userName"></div>
           <div class="user-email" id="userEmail"></div>
         </div>
-        <button id="signOutBtn" class="btn btn-secondary btn-compact">Sign out</button>
       </div>
     </div>
 
@@ -49,7 +55,7 @@
       <div class="metric-card">
         <div class="metric-label">Keystrokes</div>
         <div class="metric-value" id="keystrokeCount">0</div>
-        <div class="metric-unit">keys</div>
+        <div class="metric-unit">keystrokes</div>
       </div>
 
       <div class="metric-card">
@@ -61,13 +67,25 @@
       <div class="metric-card">
         <div class="metric-label">Focus Score</div>
         <div class="metric-value" id="focusScore">0</div>
-        <div class="metric-unit">score</div>
+        <div class="metric-unit">%</div>
       </div>
 
       <div class="metric-card">
         <div class="metric-label">Cognitive Load</div>
         <div class="metric-value" id="cognitiveLoad">0</div>
-        <div class="metric-unit">load</div>
+        <div class="metric-unit">%</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Session Time</div>
+        <div class="metric-value" id="sessionTime">0:00</div>
+        <div class="metric-unit">min</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Backspaces</div>
+        <div class="metric-value" id="backspaceCount">0</div>
+        <div class="metric-unit">count</div>
       </div>
     </div>
 
@@ -77,7 +95,7 @@
     </div>
 
     <div class="footer">
-      <div class="timestamp" id="timestamp">Last updated: just now</div>
+      <div class="timestamp" id="timestamp">Not tracking</div>
     </div>
   </div>
 
