@@ -25,12 +25,13 @@ function ensureStyles() {
     }
 
     #${OVERLAY_ID} .mindpulse-card {
-      width: min(420px, calc(100vw - 32px));
+      width: min(480px, calc(100vw - 32px));
       background: #111111;
       border: 1px solid #2a2a2a;
+      border-left: 2px solid #d9d9d9;
       border-radius: 12px;
       box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
-      padding: 24px;
+      padding: 32px;
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       transform: translateY(16px);
@@ -53,7 +54,7 @@ function ensureStyles() {
       flex-direction: column;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 18px;
+      gap: 24px;
     }
 
     #${OVERLAY_ID} .mindpulse-brand {
@@ -82,13 +83,14 @@ function ensureStyles() {
     #${OVERLAY_ID} .mindpulse-brand-text {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
       min-width: 0;
     }
 
     #${OVERLAY_ID} .mindpulse-title {
       color: #dcdcdc;
-      font-size: 12px;
+      font-size: 14px;
+      font-weight: 600;
       line-height: 1.2;
       letter-spacing: 0.01em;
     }
@@ -96,6 +98,13 @@ function ensureStyles() {
     #${OVERLAY_ID} .mindpulse-message {
       color: #ffffff;
       font-size: 14px;
+      line-height: 1.35;
+      white-space: normal;
+    }
+
+    #${OVERLAY_ID} .mindpulse-submessage {
+      color: #666666;
+      font-size: 12px;
       line-height: 1.35;
       white-space: normal;
     }
@@ -114,9 +123,9 @@ function ensureStyles() {
       background: #171717;
       color: #f2f2f2;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1;
-      padding: 8px 11px;
+      padding: 10px 14px;
       cursor: pointer;
       transition: background-color 160ms ease, border-color 160ms ease;
     }
@@ -130,7 +139,7 @@ function ensureStyles() {
       background: #ffffff;
       color: #000000;
       border-color: #ffffff;
-      font-weight: 500;
+      font-weight: 700;
     }
 
     #${OVERLAY_ID} button[data-action='back']:hover {
@@ -193,6 +202,7 @@ function showOverlay() {
           <div class="mindpulse-brand-text">
             <div class="mindpulse-title">MindPulse</div>
             <div class="mindpulse-message">You left your session</div>
+            <div class="mindpulse-submessage">Your session is still running.</div>
           </div>
         </div>
         <div class="mindpulse-actions">
