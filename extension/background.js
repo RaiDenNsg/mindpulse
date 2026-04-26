@@ -273,7 +273,7 @@ async function handleDistractionTab(tab, distractionSiteName) {
       try {
         chrome.notifications.create({
           type: 'basic',
-          iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
           title: 'MindPulse',
           message: 'You left your session. Come back when you\'re ready.',
           buttons: [
