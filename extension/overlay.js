@@ -11,32 +11,49 @@ function ensureStyles() {
   style.textContent = `
     #${OVERLAY_ID} {
       position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translate(-50%, -18px);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
       opacity: 0;
-      z-index: 999999;
-      width: min(680px, calc(100vw - 24px));
+      z-index: 999998;
+      transition: opacity 220ms ease;
+    }
+
+    #${OVERLAY_ID} .mindpulse-card {
+      width: min(420px, calc(100vw - 32px));
       background: #111111;
       border: 1px solid #2a2a2a;
       border-radius: 12px;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+      padding: 24px;
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      transition: transform 220ms ease, opacity 220ms ease;
+      transform: translateY(16px);
+      opacity: 0;
+      z-index: 999999;
+      transition: transform 240ms ease, opacity 240ms ease;
     }
 
     #${OVERLAY_ID}.mindpulse-visible {
-      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    #${OVERLAY_ID}.mindpulse-visible .mindpulse-card {
+      transform: translateY(0);
       opacity: 1;
     }
 
     #${OVERLAY_ID} .mindpulse-inner {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
       justify-content: space-between;
-      gap: 16px;
-      padding: 12px 14px;
+      gap: 18px;
     }
 
     #${OVERLAY_ID} .mindpulse-brand {
@@ -80,9 +97,7 @@ function ensureStyles() {
       color: #ffffff;
       font-size: 14px;
       line-height: 1.35;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
     }
 
     #${OVERLAY_ID} .mindpulse-actions {
@@ -90,6 +105,7 @@ function ensureStyles() {
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
+      margin-left: auto;
     }
 
     #${OVERLAY_ID} button {
@@ -111,29 +127,21 @@ function ensureStyles() {
     }
 
     #${OVERLAY_ID} button[data-action='back'] {
-      background: #efefef;
-      color: #121212;
-      border-color: #efefef;
+      background: #ffffff;
+      color: #000000;
+      border-color: #ffffff;
       font-weight: 500;
     }
 
     #${OVERLAY_ID} button[data-action='back']:hover {
-      background: #ffffff;
-      border-color: #ffffff;
+      background: #f2f2f2;
+      border-color: #f2f2f2;
     }
 
     @media (max-width: 640px) {
-      #${OVERLAY_ID} .mindpulse-inner {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      #${OVERLAY_ID} .mindpulse-message {
-        white-space: normal;
-      }
-
       #${OVERLAY_ID} .mindpulse-actions {
         justify-content: flex-end;
+        width: 100%;
       }
     }
   `;
@@ -178,17 +186,19 @@ function showOverlay() {
   overlay.id = OVERLAY_ID;
 
   overlay.innerHTML = `
-    <div class="mindpulse-inner">
-      <div class="mindpulse-brand">
-        <div class="mindpulse-logo">MP</div>
-        <div class="mindpulse-brand-text">
-          <div class="mindpulse-title">MindPulse</div>
-          <div class="mindpulse-message">You left your session</div>
+    <div class="mindpulse-card">
+      <div class="mindpulse-inner">
+        <div class="mindpulse-brand">
+          <div class="mindpulse-logo">MP</div>
+          <div class="mindpulse-brand-text">
+            <div class="mindpulse-title">MindPulse</div>
+            <div class="mindpulse-message">You left your session</div>
+          </div>
         </div>
-      </div>
-      <div class="mindpulse-actions">
-        <button type="button" data-action="break">Taking a break</button>
-        <button type="button" data-action="back">Back to work</button>
+        <div class="mindpulse-actions">
+          <button type="button" data-action="break">Taking a break</button>
+          <button type="button" data-action="back">Back to work</button>
+        </div>
       </div>
     </div>
   `;
