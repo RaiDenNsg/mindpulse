@@ -166,16 +166,30 @@ async function checkStuckDetection() {
     lastBackspaceSnapshot = totalBackspaces;
 
     const lastKeystrokeTime = Number(state.lastKeystrokeTime || 0);
+    const idleMs = lastKeystrokeTime > 0 ? Math.max(0, now - lastKeystrokeTime) : 0;
     const isIdleStuck =
-      lastKeystrokeTime > 0 && now - lastKeystrokeTime > STUCK_IDLE_THRESHOLD_MS;
+      lastKeystrokeTime > 0 && idleMs > STUCK_IDLE_THRESHOLD_MS;
     const isBackspaceStuck = backspacesInWindow > STUCK_BACKSPACE_DELTA_THRESHOLD;
+
+    const lastStuckAlert = Number(state.lastStuckAlert || 0);
+    const cooldownActive =
+      lastStuckAlert > 0 && now - lastStuckAlert < STUCK_ALERT_COOLDOWN_MS;
+
+    console.log('[MindPulse] stuck-check:', {
+      idleMs,
+      backspaceDelta: backspacesInWindow,
+      cooldownActive,
+      isIdleStuck,
+      isBackspaceStuck,
+      keystrokes: totalKeystrokes,
+      focusMode,
+    });
 
     if (!isIdleStuck && !isBackspaceStuck) {
       return;
     }
 
-    const lastStuckAlert = Number(state.lastStuckAlert || 0);
-    if (lastStuckAlert > 0 && now - lastStuckAlert < STUCK_ALERT_COOLDOWN_MS) {
+    if (cooldownActive) {
       return;
     }
 
