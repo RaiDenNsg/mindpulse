@@ -49,25 +49,6 @@ function storageRemove(keys) {
   });
 }
 
-function notificationsCreate(notificationId, options) {
-  return new Promise((resolve) => {
-    try {
-      chrome.notifications.create(notificationId, options, (createdNotificationId) => {
-        if (chrome.runtime.lastError) {
-          console.error('MindPulse notification create failed:', chrome.runtime.lastError.message);
-          resolve(false);
-          return;
-        }
-
-        resolve(Boolean(createdNotificationId));
-      });
-    } catch (error) {
-      console.error('MindPulse notification create threw:', error);
-      resolve(false);
-    }
-  });
-}
-
 function notificationsClear(notificationId) {
   return new Promise((resolve) => {
     try {
@@ -288,14 +269,14 @@ async function handleDistractionTab(tab, distractionSiteName) {
       try {
         chrome.notifications.create({
           type: 'basic',
-          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-          title: 'Hey, you have work to do! 👀',
-          message: 'You switched to a distracting site. Stay focused!',
+          iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+          title: 'MindPulse',
+          message: 'You left your session. Come back when you\'re ready.',
           buttons: [
-            { title: "I'm on a break 😴" },
-            { title: 'Back to work 💪' }
+            { title: 'Taking a break' },
+            { title: 'Back to work' }
           ],
-          requireInteraction: true
+          requireInteraction: true,
         }, (notificationId) => {
           if (chrome.runtime.lastError) {
             console.error('MindPulse notification create failed:', chrome.runtime.lastError.message);
