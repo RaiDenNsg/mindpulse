@@ -147,7 +147,7 @@ function getDistractionSiteName(url) {
 }
 
 function normalizeFocusMode(value) {
-  const mode = Number(value);
+  const mode = Number.parseInt(value, 10);
   return mode === 1 || mode === 2 || mode === 3 ? mode : DEFAULT_FOCUS_MODE;
 }
 
@@ -218,6 +218,8 @@ async function handleDistractionTab(tab, distractionSiteName) {
     const activeCodingTabId = state[STORAGE_KEYS.activeCodingTabId];
     const focusMode = normalizeFocusMode(state[STORAGE_KEYS.focusMode]);
 
+    console.log('MindPulse tab switch detected:', tab.url, 'mode:', focusMode);
+
     if (focusMode === 1) {
       return;
     }
@@ -264,6 +266,8 @@ async function handleDistractionTab(tab, distractionSiteName) {
       distractionSiteName,
       focusMode,
     });
+
+    console.log('MindPulse creating notification...');
 
     const created = await new Promise((resolve) => {
       try {
