@@ -146,17 +146,31 @@ function setAuthUI(user) {
   const userInfo = document.getElementById('userInfo');
   const userName = document.getElementById('userName');
   const userEmail = document.getElementById('userEmail');
+  const headerUserName = document.getElementById('headerUserName');
   const syncBtn = document.getElementById('syncBtn');
 
   if (user && user.userId) {
     signInBtn.classList.add('hidden');
     userInfo.classList.remove('hidden');
-    userName.textContent = user.name || 'MindPulse User';
+    userName.textContent = user.name || '';
     userEmail.textContent = user.email || 'Signed in';
+
+    if (headerUserName) {
+      const hasName = Boolean(user.name && user.name.trim());
+      headerUserName.textContent = hasName ? user.name.trim() : '';
+      headerUserName.classList.toggle('hidden', !hasName);
+    }
+
     syncBtn.disabled = currentMetrics ? false : true;
   } else {
     signInBtn.classList.remove('hidden');
     userInfo.classList.add('hidden');
+
+    if (headerUserName) {
+      headerUserName.textContent = '';
+      headerUserName.classList.add('hidden');
+    }
+
     syncBtn.disabled = true;
   }
 }
@@ -314,34 +328,37 @@ function formatTimestamp(timestamp) {
 
 // Update UI with metrics
 function updateUI(metrics) {
-  document.getElementById('keystrokeCount').textContent = metrics.keystrokeCount;
-  document.getElementById('typingSpeed').textContent = metrics.typingSpeed;
-  document.getElementById('focusScore').textContent = metrics.focusScore;
-  document.getElementById('cognitiveLoad').textContent = metrics.cognitiveLoad;
-  document.getElementById('backspaceCount').textContent = metrics.backspaceCount;
-  document.getElementById('sessionTime').textContent = formatTime(metrics.elapsedSeconds);
-  document.getElementById('platformBadge').textContent = metrics.platform;
-  document.getElementById('timestamp').textContent = `Last updated: ${formatTimestamp(metrics.timestamp)}`;
-  document.getElementById('syncBtn').disabled = !currentUser;
+  const setText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = String(value);
+    }
+  };
+
+  setText('keystrokeCount', metrics.keystrokeCount);
+  setText('typingSpeed', metrics.typingSpeed);
+  setText('focusScore', metrics.focusScore);
+  setText('cognitiveLoad', metrics.cognitiveLoad);
+  setText('backspaceCount', metrics.backspaceCount);
+  setText('sessionTime', formatTime(metrics.elapsedSeconds));
+  setText('platformBadge', metrics.platform);
+  setText('timestamp', `Last updated: ${formatTimestamp(metrics.timestamp)}`);
+
+  const syncBtn = document.getElementById('syncBtn');
+  if (syncBtn) {
+    syncBtn.disabled = !currentUser;
+  }
 
   // Color code focus score
   const focusEl = document.getElementById('focusScore');
-  if (metrics.focusScore >= 80) {
-    focusEl.style.color = '#10b981'; // green
-  } else if (metrics.focusScore >= 60) {
-    focusEl.style.color = '#f59e0b'; // amber
-  } else {
-    focusEl.style.color = '#ef4444'; // red
+  if (focusEl) {
+    focusEl.style.color = '#ffffff';
   }
 
   // Color code cognitive load
   const loadEl = document.getElementById('cognitiveLoad');
-  if (metrics.cognitiveLoad <= 40) {
-    loadEl.style.color = '#10b981'; // green
-  } else if (metrics.cognitiveLoad <= 70) {
-    loadEl.style.color = '#f59e0b'; // amber
-  } else {
-    loadEl.style.color = '#ef4444'; // red
+  if (loadEl) {
+    loadEl.style.color = '#ffffff';
   }
 }
 
