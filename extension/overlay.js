@@ -1,4 +1,5 @@
 const OVERLAY_ID = 'mindpulse-distraction-overlay';
+const BACKDROP_ID = 'mindpulse-distraction-backdrop';
 const STYLE_ID = 'mindpulse-distraction-overlay-style';
 
 function ensureStyles() {
@@ -9,22 +10,29 @@ function ensureStyles() {
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = `
-    #${OVERLAY_ID} {
+    #${BACKDROP_ID} {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.6);
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
       opacity: 0;
       z-index: 999998;
       transition: opacity 220ms ease;
     }
 
-    #${OVERLAY_ID} .mindpulse-card {
+    #${BACKDROP_ID}.mindpulse-visible {
+      opacity: 1;
+    }
+
+    #${OVERLAY_ID} {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, calc(-50% + 16px));
+      opacity: 0;
+      z-index: 999999;
       width: min(480px, calc(100vw - 32px));
       background: #111111;
       border: 1px solid #2a2a2a;
@@ -34,18 +42,11 @@ function ensureStyles() {
       padding: 32px;
       color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      transform: translateY(16px);
-      opacity: 0;
-      z-index: 999999;
       transition: transform 240ms ease, opacity 240ms ease;
     }
 
     #${OVERLAY_ID}.mindpulse-visible {
-      opacity: 1;
-    }
-
-    #${OVERLAY_ID}.mindpulse-visible .mindpulse-card {
-      transform: translateY(0);
+      transform: translate(-50%, -50%);
       opacity: 1;
     }
 
@@ -159,15 +160,27 @@ function ensureStyles() {
 }
 
 function removeOverlay() {
-  const existing = document.getElementById(OVERLAY_ID);
-  if (!existing) {
+  const existingCard = document.getElementById(OVERLAY_ID);
+  const existingBackdrop = document.getElementById(BACKDROP_ID);
+  if (!existingCard && !existingBackdrop) {
     return;
   }
 
-  existing.classList.remove('mindpulse-visible');
+  if (existingCard) {
+    existingCard.classList.remove('mindpulse-visible');
+  }
+
+  if (existingBackdrop) {
+    existingBackdrop.classList.remove('mindpulse-visible');
+  }
+
   setTimeout(() => {
-    if (existing.parentElement) {
-      existing.parentElement.removeChild(existing);
+    if (existingCard?.parentElement) {
+      existingCard.parentElement.removeChild(existingCard);
+    }
+
+    if (existingBackdrop?.parentElement) {
+      existingBackdrop.parentElement.removeChild(existingBackdrop);
     }
   }, 220);
 }
@@ -185,30 +198,37 @@ function sendBackgroundMessage(type) {
 function showOverlay() {
   ensureStyles();
 
-  const existing = document.getElementById(OVERLAY_ID);
-  if (existing) {
-    existing.classList.add('mindpulse-visible');
+  if (!document.body) {
     return;
   }
+
+  const existingCard = document.getElementById(OVERLAY_ID);
+  const existingBackdrop = document.getElementById(BACKDROP_ID);
+  if (existingCard && existingBackdrop) {
+    existingBackdrop.classList.add('mindpulse-visible');
+    existingCard.classList.add('mindpulse-visible');
+    return;
+  }
+
+  const backdrop = document.createElement('div');
+  backdrop.id = BACKDROP_ID;
 
   const overlay = document.createElement('div');
   overlay.id = OVERLAY_ID;
 
   overlay.innerHTML = `
-    <div class="mindpulse-card">
-      <div class="mindpulse-inner">
-        <div class="mindpulse-brand">
-          <div class="mindpulse-logo">MP</div>
-          <div class="mindpulse-brand-text">
-            <div class="mindpulse-title">MindPulse</div>
-            <div class="mindpulse-message">You left your session</div>
-            <div class="mindpulse-submessage">Your session is still running.</div>
-          </div>
+    <div class="mindpulse-inner">
+      <div class="mindpulse-brand">
+        <div class="mindpulse-logo">MP</div>
+        <div class="mindpulse-brand-text">
+          <div class="mindpulse-title">MindPulse</div>
+          <div class="mindpulse-message">You left your session</div>
+          <div class="mindpulse-submessage">Your session is still running.</div>
         </div>
-        <div class="mindpulse-actions">
-          <button type="button" data-action="break">Taking a break</button>
-          <button type="button" data-action="back">Back to work</button>
-        </div>
+      </div>
+      <div class="mindpulse-actions">
+        <button type="button" data-action="break">Taking a break</button>
+        <button type="button" data-action="back">Back to work</button>
       </div>
     </div>
   `;
@@ -229,8 +249,10 @@ function showOverlay() {
     removeOverlay();
   });
 
-  document.documentElement.appendChild(overlay);
+  document.body.appendChild(backdrop);
+  document.body.appendChild(overlay);
   requestAnimationFrame(() => {
+    backdrop.classList.add('mindpulse-visible');
     overlay.classList.add('mindpulse-visible');
   });
 }
