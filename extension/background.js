@@ -27,31 +27,9 @@ const STORAGE_KEYS = {
 };
 
 const DEFAULT_FOCUS_MODE = 2;
-
-const NOTIFICATION_PREFIX = 'mindpulse-distraction-';
-const NOTIFICATION_ICON = createNotificationIconDataUrl();
 const MESSAGE_SOURCE_BACKGROUND = 'mindpulse-background';
 
 const notificationTabs = new Set();
-
-function createNotificationIconDataUrl() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#38bdf8" />
-          <stop offset="100%" stop-color="#1d4ed8" />
-        </linearGradient>
-      </defs>
-      <rect width="128" height="128" rx="28" fill="url(#g)" />
-      <path d="M39 69c0-13.8 11.2-25 25-25s25 11.2 25 25v17H39V69z" fill="#0f172a" opacity="0.88" />
-      <circle cx="64" cy="47" r="16" fill="#e2e8f0" />
-      <path d="M49 92h30" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round" />
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
 
 function storageGet(keys) {
   return new Promise((resolve) => {
@@ -300,17 +278,37 @@ async function handleDistractionTab(tab, distractionSiteName) {
     // Pause tracking on the coding tab
     await sendTabMessage(activeCodingTabId, { type: 'PAUSE_SESSION' });
 
-    const notificationId = `${NOTIFICATION_PREFIX}${tab.id}`;
-    const created = await notificationsCreate(notificationId, {
-      type: 'basic',
-      iconUrl: NOTIFICATION_ICON,
-      title: 'Hey, you have work to do! 👀',
-      message: 'You switched to a distracting site. Stay focused!',
-      buttons: [
-        { title: "I'm on a break 😴" },
-        { title: 'Back to work 💪' }
-      ],
-      requireInteraction: true
+    console.log('[MindPulse] Study mode notification branch reached:', {
+      tabId: tab.id,
+      distractionSiteName,
+      focusMode,
+    });
+
+    const created = await new Promise((resolve) => {
+      try {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          title: 'Hey, you have work to do! 👀',
+          message: 'You switched to a distracting site. Stay focused!',
+          buttons: [
+            { title: "I'm on a break 😴" },
+            { title: 'Back to work 💪' }
+          ],
+          requireInteraction: true
+        }, (notificationId) => {
+          if (chrome.runtime.lastError) {
+            console.error('MindPulse notification create failed:', chrome.runtime.lastError.message);
+            resolve(false);
+            return;
+          }
+
+          resolve(Boolean(notificationId));
+        });
+      } catch (error) {
+        console.error('MindPulse notification create threw:', error);
+        resolve(false);
+      }
     });
 
     if (!created) {
@@ -470,15 +468,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
   void (async () => {
     try {
-      if (!notificationId.startsWith(NOTIFICATION_PREFIX)) {
-        return;
-      }
-
-      const tabId = Number(notificationId.slice(NOTIFICATION_PREFIX.length));
-      if (Number.isNaN(tabId)) {
-        return;
-      }
-
       const state = await storageGet([
         STORAGE_KEYS.activeCodingTabId,
         STORAGE_KEYS.activeCodingUrl,
@@ -488,20 +477,25 @@ chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) =
 
       const codingTabId = state[STORAGE_KEYS.activeCodingTabId];
       const codingTabUrl = state[STORAGE_KEYS.activeCodingUrl];
-      const distractionTabId = state[STORAGE_KEYS.pendingDistractionTabId] || tabId;
+      const distractionTabId = state[STORAGE_KEYS.pendingDistractionTabId];
 
       await notificationsClear(notificationId);
 
       if (buttonIndex === 0) {
-        // \"I'm on a break\" - session is already paused, just clear pending distraction
+        if (codingTabId) {
+          await sendTabMessage(codingTabId, { type: 'PAUSE_SESSION' });
+        }
+
         await storageSet({
+          [STORAGE_KEYS.sessionActive]: true,
+          [STORAGE_KEYS.sessionPaused]: true,
           [STORAGE_KEYS.pendingDistractionTabId]: null,
           [STORAGE_KEYS.pendingDistractionSiteName]: null,
         });
         return;
       }
 
-      if (buttonIndex !== 1 || !codingTabId) {
+      if (buttonIndex !== 1 || !codingTabId || !distractionTabId) {
         return;
       }
 
