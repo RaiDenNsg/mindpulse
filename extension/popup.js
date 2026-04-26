@@ -148,44 +148,53 @@ function setAuthUI(user) {
   const userEmail = document.getElementById('userEmail');
   const headerUserMeta = document.getElementById('headerUserMeta');
   const headerUserName = document.getElementById('headerUserName');
-  const statusUserName = document.getElementById('statusUserName');
   const syncBtn = document.getElementById('syncBtn');
 
   if (user && user.userId) {
-    signInBtn.classList.add('hidden');
-    userInfo.classList.remove('hidden');
+    if (signInBtn) {
+      signInBtn.classList.add('hidden');
+    }
+
+    if (userInfo) {
+      userInfo.classList.remove('hidden');
+    }
+
     const hasName = Boolean(user.name && user.name.trim());
     const normalizedName = hasName ? user.name.trim() : '';
 
-    userName.textContent = normalizedName;
-    userEmail.textContent = user.email || 'Signed in';
+    if (userName) {
+      userName.textContent = normalizedName;
+    }
+
+    if (userEmail) {
+      userEmail.textContent = user.email || 'Signed in';
+    }
 
     if (headerUserMeta && headerUserName) {
       headerUserName.textContent = normalizedName;
       headerUserMeta.classList.toggle('hidden', !hasName);
     }
 
-    if (statusUserName) {
-      statusUserName.textContent = normalizedName;
-      statusUserName.classList.toggle('hidden', !hasName);
+    if (syncBtn) {
+      syncBtn.disabled = currentMetrics ? false : true;
+    }
+  } else {
+    if (signInBtn) {
+      signInBtn.classList.remove('hidden');
     }
 
-    syncBtn.disabled = currentMetrics ? false : true;
-  } else {
-    signInBtn.classList.remove('hidden');
-    userInfo.classList.add('hidden');
+    if (userInfo) {
+      userInfo.classList.add('hidden');
+    }
 
     if (headerUserMeta && headerUserName) {
       headerUserName.textContent = '';
       headerUserMeta.classList.add('hidden');
     }
 
-    if (statusUserName) {
-      statusUserName.textContent = '';
-      statusUserName.classList.add('hidden');
+    if (syncBtn) {
+      syncBtn.disabled = true;
     }
-
-    syncBtn.disabled = true;
   }
 }
 
@@ -231,12 +240,14 @@ async function fetchGoogleProfile(token) {
 
 async function signInWithGoogle(interactive = true) {
   const signInBtn = document.getElementById('signInBtn');
-  const originalText = signInBtn.textContent;
+  const originalText = signInBtn?.textContent || 'Sign in with Google';
 
   try {
     if (interactive) {
-      signInBtn.disabled = true;
-      signInBtn.textContent = 'Signing in...';
+      if (signInBtn) {
+        signInBtn.disabled = true;
+        signInBtn.textContent = 'Signing in...';
+      }
     }
 
     const token = await getAuthToken(interactive);
@@ -265,17 +276,24 @@ async function signInWithGoogle(interactive = true) {
   } catch (error) {
     if (interactive) {
       console.error('Google sign-in failed:', error);
-      signInBtn.textContent = 'Sign-in Failed';
+      if (signInBtn) {
+        signInBtn.textContent = 'Sign-in Failed';
+      }
       setTimeout(() => {
-        signInBtn.textContent = originalText;
+        if (signInBtn) {
+          signInBtn.textContent = originalText;
+        }
       }, 1500);
     } else {
       console.log('[MindPulse Auth] Silent sign-in unavailable:', error?.message || error);
     }
   } finally {
     if (interactive) {
-      signInBtn.disabled = false;
-      if (!currentUser) {
+      if (signInBtn) {
+        signInBtn.disabled = false;
+      }
+
+      if (!currentUser && signInBtn) {
         signInBtn.textContent = originalText;
       }
     }
@@ -479,9 +497,12 @@ async function resetSession() {
 
 // Event listeners
 document.getElementById('resetBtn').addEventListener('click', resetSession);
-document.getElementById('signInBtn').addEventListener('click', () => {
-  void signInWithGoogle(true);
-});
+const signInBtn = document.getElementById('signInBtn');
+if (signInBtn) {
+  signInBtn.addEventListener('click', () => {
+    void signInWithGoogle(true);
+  });
+}
 
 const headerSignOut = document.getElementById('headerSignOut');
 if (headerSignOut) {
