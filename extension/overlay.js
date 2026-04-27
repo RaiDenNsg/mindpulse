@@ -210,8 +210,14 @@ function storageRemoveLocal(keys) {
 }
 
 function buildSmartSearchUrl(lastTypedText) {
-  const query = `${lastTypedText} programming help`;
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  const cleaned = String(lastTypedText || '')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 50);
+
+  const query = `${cleaned || 'programming issue'} programming help`;
+  return 'https://www.google.com/search?q=' + encodeURIComponent(query);
 }
 
 function escapeHtml(value) {
