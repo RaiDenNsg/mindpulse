@@ -42,7 +42,12 @@
         "*://*.programiz.com/*",
         "*://programiz.com/*"
       ],
-      "js": ["content.js", "overlay.js"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["overlay.js"],
       "run_at": "document_idle"
     }
   ],
