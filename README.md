@@ -10,19 +10,23 @@ MindPulse is a cognitive load tracker for coders. It helps developers understand
 - Firebase sync with user accounts
 - History page with session timeline
 
-## Use the Web App
+## How to Use
 
-1. Open https://mindpulse-amber.vercel.app
-2. Sign in with Google
-3. Start coding in the editor
+### Web App
+Visit: https://mindpulse-amber.vercel.app  
+Sign in with Google and start coding in the editor.
 
-## Install the Chrome Extension (Developer Mode)
+### Chrome Extension
+1. Go to the releases page and download `mindpulse-extension.zip`  
+   Link: https://github.com/RaiDenNsg/mindpulse/releases/latest
+2. Unzip the downloaded file
+3. Open Chrome and go to: `chrome://extensions`
+4. Toggle on "Developer Mode" (top right corner)
+5. Click "Load unpacked" and select the unzipped folder
+6. The MindPulse icon will appear in your Chrome toolbar
+7. Pin it and start coding on LeetCode or Programiz
 
-1. Clone this repository
-2. Open Chrome and go to chrome://extensions
-3. Enable Developer mode
-4. Click Load unpacked and select the extension folder
-5. Pin MindPulse and start coding on LeetCode or Programiz
+> **Note:** Developer mode is required because the extension is not yet on the Chrome Web Store. It is safe to use.
 
 ## Tech Stack
 
