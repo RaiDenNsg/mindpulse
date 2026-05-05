@@ -38,8 +38,6 @@ export async function saveSession(userId, sessionData) {
     throw new Error("userId is required to save a session");
   }
 
-  console.log("[MindPulse Sessions] saveSession userId:", userId);
-
   const date = normalizeDateKey(sessionData?.date);
   const documentId = `${userId}_${date}`;
 
@@ -55,11 +53,8 @@ export async function saveSession(userId, sessionData) {
 
 export async function getUserSessions(userId) {
   if (!userId) {
-    console.log("[MindPulse Sessions] getUserSessions userId: null");
     return [];
   }
-
-  console.log("[MindPulse Sessions] getUserSessions userId:", userId);
 
   const sessionsQuery = query(userSessionsCollection(userId));
 
@@ -72,11 +67,8 @@ export async function getUserSessions(userId) {
 
 export async function getYesterdaySession(userId) {
   if (!userId) {
-    console.log("[MindPulse Sessions] getYesterdaySession userId: null");
     return null;
   }
-
-  console.log("[MindPulse Sessions] getYesterdaySession userId:", userId);
 
   const yesterday = getDateKey(-1);
   const yesterdayQuery = query(

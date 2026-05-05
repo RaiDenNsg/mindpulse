@@ -220,7 +220,6 @@ function HistoryPage() {
     };
 
     const unsubscribe = subscribeToAuthState((nextUser: { uid: string } | null) => {
-      console.log("[MindPulse History] Auth uid:", nextUser?.uid ?? null);
       void loadSessions(nextUser?.uid);
     });
 

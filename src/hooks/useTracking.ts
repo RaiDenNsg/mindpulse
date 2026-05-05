@@ -176,23 +176,16 @@ export function useTracking() {
   const persistSessionData = useCallback((sessionSec: number, focusScore: number, productivity: number) => {
     const userId = auth?.currentUser?.uid;
     if (!userId) {
-      console.log("Skipping save: missing user uid");
       return;
     }
 
     if (typingTimeRef.current < MIN_TYPING_BEFORE_SAVE_MS) {
-      console.log("Skipping save: typing time below threshold", {
-        typingTimeMs: typingTimeRef.current,
-        requiredMs: MIN_TYPING_BEFORE_SAVE_MS,
-      });
       return;
     }
 
     const avgLoad = cognitiveLoadsRef.current.length > 0
       ? cognitiveLoadsRef.current.reduce((a, b) => a + b, 0) / cognitiveLoadsRef.current.length
       : 0;
-
-    console.log("Saving session...", { userId });
 
     void saveSession(userId, {
       date: getTodayKey(),
@@ -206,7 +199,6 @@ export function useTracking() {
     }).then(() => {
       lastSavedAtRef.current = Date.now();
       emitSessionSaved(userId);
-      console.log("Session saved successfully", { userId });
     }).catch(() => {
       // Silent fail to avoid interrupting tracking UI on transient network issues.
       console.log("Session save failed");
@@ -287,15 +279,6 @@ export function useTracking() {
       // Store for next interval
       previousCognitiveLoadRef.current = load;
       
-      console.log("Cognitive debug", {
-        hasStartedTyping: hasStartedTypingRef.current,
-        recentKeystrokes,
-        idleThisInterval: recentKeystrokes === 0,
-        backspaceCount: intervalBackspacesRef.current,
-        idleTime: Number(idleSec.toFixed(2)),
-        typingSpeed: periodSpeed,
-        cognitiveLoad: Math.round(load),
-      });
       const focus = detectFocusState(periodSpeed, periodBRate, idleSec);
       const fScore = calculateFocusScore(typingTimeRef.current, sessionMs);
       const prod = calculateProductivity(fScore, periodBRate);
