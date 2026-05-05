@@ -220,15 +220,6 @@ function buildSmartSearchUrl(lastTypedText) {
   return 'https://www.google.com/search?q=' + encodeURIComponent(query);
 }
 
-function escapeHtml(value) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function showOverlay(options = {}) {
   ensureStyles();
 
@@ -259,36 +250,75 @@ function showOverlay(options = {}) {
   overlay.id = OVERLAY_ID;
   overlay.dataset.mode = mode;
 
-  const escapedSubmessage = submessage ? escapeHtml(submessage) : '';
-  const submessageHtml = escapedSubmessage
-    ? `<div class="mindpulse-submessage">${escapedSubmessage}</div>`
-    : '';
+  // Build overlay content using DOM creation instead of innerHTML
+  const inner = document.createElement('div');
+  inner.className = 'mindpulse-inner';
 
-  const actionsHtml = showFindHelp
-    ? `
-      <button type="button" data-action="find-help">Find help</button>
-      <button type="button" data-action="take-break">Take a break</button>
-    `
-    : `
-      <button type="button" data-action="break">Taking a break</button>
-      <button type="button" data-action="back">Back to work</button>
-    `;
+  const brand = document.createElement('div');
+  brand.className = 'mindpulse-brand';
 
-  overlay.innerHTML = `
-    <div class="mindpulse-inner">
-      <div class="mindpulse-brand">
-        <div class="mindpulse-logo">MP</div>
-        <div class="mindpulse-brand-text">
-          <div class="mindpulse-title">MindPulse</div>
-          <div class="mindpulse-message">${escapeHtml(message)}</div>
-          ${submessageHtml}
-        </div>
-      </div>
-      <div class="mindpulse-actions">
-        ${actionsHtml}
-      </div>
-    </div>
-  `;
+  const logo = document.createElement('div');
+  logo.className = 'mindpulse-logo';
+  logo.textContent = 'MP';
+
+  const brandText = document.createElement('div');
+  brandText.className = 'mindpulse-brand-text';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'mindpulse-title';
+  titleEl.textContent = 'MindPulse';
+
+  const messageEl = document.createElement('div');
+  messageEl.className = 'mindpulse-message';
+  messageEl.textContent = message;
+
+  brandText.appendChild(titleEl);
+  brandText.appendChild(messageEl);
+
+  if (submessage) {
+    const submessageEl = document.createElement('div');
+    submessageEl.className = 'mindpulse-submessage';
+    submessageEl.textContent = submessage;
+    brandText.appendChild(submessageEl);
+  }
+
+  brand.appendChild(logo);
+  brand.appendChild(brandText);
+
+  const actions = document.createElement('div');
+  actions.className = 'mindpulse-actions';
+
+  if (showFindHelp) {
+    const findHelpBtn = document.createElement('button');
+    findHelpBtn.type = 'button';
+    findHelpBtn.setAttribute('data-action', 'find-help');
+    findHelpBtn.textContent = 'Find help';
+
+    const takeBreakBtn = document.createElement('button');
+    takeBreakBtn.type = 'button';
+    takeBreakBtn.setAttribute('data-action', 'take-break');
+    takeBreakBtn.textContent = 'Take a break';
+
+    actions.appendChild(findHelpBtn);
+    actions.appendChild(takeBreakBtn);
+  } else {
+    const breakBtn = document.createElement('button');
+    breakBtn.type = 'button';
+    breakBtn.setAttribute('data-action', 'break');
+    breakBtn.textContent = 'Taking a break';
+
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.setAttribute('data-action', 'back');
+    backBtn.textContent = 'Back to work';
+
+    actions.appendChild(breakBtn);
+    actions.appendChild(backBtn);
+  }
+
+  inner.appendChild(brand);
+  inner.appendChild(actions);
+  overlay.appendChild(inner);
 
   overlay.addEventListener('click', async (event) => {
     const button = event.target.closest('button[data-action]');

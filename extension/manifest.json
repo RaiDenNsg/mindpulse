@@ -25,10 +25,13 @@
     "*://hackerrank.com/*",
     "*://*.programiz.com/*",
     "*://programiz.com/*",
-    "https://firestore.googleapis.com/*",
-    "https://www.googleapis.com/*",
-    "https://identitytoolkit.googleapis.com/*"
+    "https://firestore.googleapis.com/v1/*",
+    "https://www.googleapis.com/oauth2/v3/userinfo",
+    "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp"
   ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://www.googleapis.com; img-src 'self' data:"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -39,12 +42,7 @@
         "*://*.programiz.com/*",
         "*://programiz.com/*"
       ],
-      "js": ["content.js"],
-      "run_at": "document_start"
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["overlay.js"],
+      "js": ["content.js", "overlay.js"],
       "run_at": "document_idle"
     }
   ],

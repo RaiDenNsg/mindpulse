@@ -268,7 +268,7 @@ async function signInWithGoogle(interactive = true) {
       name: profile?.name || firebaseAuthResult.displayName || ''
     };
 
-    console.log('[MindPulse Auth] Google token exchanged for Firebase uid:', firebaseUid);
+    console.log('[MindPulse Auth] Successfully signed in');
 
     await storageSet({ [AUTH_STORAGE_KEY]: authUser });
     currentUser = authUser;
@@ -445,8 +445,6 @@ async function syncSessionToFirebase(metrics) {
   const userSessionsUrl = getFirestoreUserSessionsUrl(userId);
 
   console.log('[MindPulse Sync] Starting sync');
-  console.log('[MindPulse Sync] userId:', userId);
-  console.log('[MindPulse Sync] Path:', `users/${userId}/sessions`);
   console.log('[MindPulse Sync] Payload:', {
     date: new Date().toISOString().slice(0, 10),
     keystrokes: metrics.keystrokeCount || 0,

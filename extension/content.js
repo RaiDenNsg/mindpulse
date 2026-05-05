@@ -84,8 +84,6 @@ function persistSessionData(metrics) {
 
 // Listen for all keydown events on the page
 document.addEventListener('keydown', (event) => {
-  console.log('[MindPulse] keydown event:', event.key);
-
   if (isSessionPaused) {
     return;
   }
@@ -119,13 +117,6 @@ document.addEventListener('keydown', (event) => {
 
   const sessionData = captureMetrics();
   persistSessionData(sessionData);
-
-  console.log('[MindPulse] tracked input key:', {
-    key: event.key,
-    keystrokeCount,
-    backspaceCount,
-    platform: sessionData.platform,
-  });
 }, true); // Use capture phase to catch all events
 
 // Calculate typing speed and other metrics every 30 seconds
