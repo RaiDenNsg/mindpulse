@@ -39,7 +39,7 @@ function Dashboard() {
             </div>
             <div>
               <h1 className="text-lg leading-none font-semibold text-foreground tracking-tight">MindPulse</h1>
-              <span className="text-[11px] text-muted-foreground tracking-[0.12em] uppercase hidden sm:inline">Cognitive Intelligence</span>
+              <span className="text-[11px] text-muted-foreground tracking-[0.12em] uppercase hidden sm:inline">Focus Tracker</span>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -52,6 +52,19 @@ function Dashboard() {
             >
               History
             </Link>
+            <a
+              href="https://github.com/RaiDenNsg/mindpulse/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Extension
+            </a>
             <button
               type="button"
               onClick={() => {

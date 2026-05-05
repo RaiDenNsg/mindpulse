@@ -428,7 +428,10 @@ function HistoryPage() {
           {isLoading ? (
             <div className="text-sm text-muted-foreground py-8">Loading history...</div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-8">No sessions yet. Start a coding session to build your history.</div>
+            <div className="text-center py-12">
+              <p className="text-sm text-muted-foreground mb-2">No sessions yet.</p>
+              <p className="text-xs text-muted-foreground/70">Use the extension on LeetCode or Programiz to start tracking your sessions.</p>
+            </div>
           ) : (
             filteredSessions.map((session) => {
               const tone = getToneStyles(session.focusScore);

@@ -52,7 +52,7 @@ export function getInsightMessage(state: FocusState, backspaceRate: number, idle
   if (state === "Deep Focus") return "You're in deep focus mode — keep it up! 🚀";
   if (state === "Struggling") return "High correction rate — you might be stuck on something 🤔";
   if (state === "Distracted") return "Idle time increasing — possible distraction detected 👀";
-  if (cognitiveLoad < 10) return "Session is going well, low cognitive load ✨";
+  if (cognitiveLoad < 10) return "Session is going well, low cognitive load";
   if (backspaceRate > 25) return "Lots of corrections — consider taking a step back 💭";
   return "Neutral state — start typing to enter flow 🎯";
 }
