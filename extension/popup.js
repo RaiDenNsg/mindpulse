@@ -369,6 +369,26 @@ function getTrackingLabel(platform) {
     return 'HackerRank';
   }
 
+  if (normalized === 'codepen') {
+    return 'CodePen';
+  }
+
+  if (normalized === 'w3schools') {
+    return 'W3Schools';
+  }
+
+  if (normalized === 'khanacademy') {
+    return 'Khan Academy';
+  }
+
+  if (normalized === 'replit') {
+    return 'Replit';
+  }
+
+  if (normalized === 'codesandbox') {
+    return 'CodeSandbox';
+  }
+
   if (normalized === 'programiz') {
     return 'Programiz';
   }

@@ -130,6 +130,11 @@ function getPlatform() {
   const host = window.location.hostname;
   if (host.includes('leetcode')) return 'LeetCode';
   if (host.includes('hackerrank')) return 'HackerRank';
+  if (host.includes('codepen')) return 'CodePen';
+  if (host.includes('w3schools')) return 'W3Schools';
+  if (host.includes('khanacademy')) return 'Khan Academy';
+  if (host.includes('replit')) return 'Replit';
+  if (host.includes('codesandbox')) return 'CodeSandbox';
   if (host.includes('programiz')) return 'Programiz';
   return 'Unknown';
 }

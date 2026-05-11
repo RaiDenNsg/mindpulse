@@ -3,6 +3,11 @@
 const CODING_SITES = [
   { domain: 'leetcode.com', name: 'LeetCode' },
   { domain: 'hackerrank.com', name: 'HackerRank' },
+  { domain: 'codepen.io', name: 'CodePen' },
+  { domain: 'w3schools.com', name: 'W3Schools' },
+  { domain: 'khanacademy.org', name: 'Khan Academy' },
+  { domain: 'replit.com', name: 'Replit' },
+  { domain: 'codesandbox.io', name: 'CodeSandbox' },
   { domain: 'programiz.com', name: 'Programiz' },
 ];
 
