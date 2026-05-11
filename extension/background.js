@@ -26,6 +26,7 @@ const STORAGE_KEYS = {
   sessionPaused: 'sessionPaused',
   activeCodingTabId: 'activeCodingTabId',
   activeCodingUrl: 'activeCodingUrl',
+  lastCodingTabId: 'lastCodingTabId',
   pendingDistractionTabId: 'pendingDistractionTabId',
   pendingDistractionSiteName: 'pendingDistractionSiteName',
   focusMode: 'focusMode',
@@ -469,6 +470,7 @@ async function handleDistractionTab(tab, distractionSiteName) {
     await storageSet({
       [STORAGE_KEYS.sessionActive]: true,
       [STORAGE_KEYS.sessionPaused]: true,
+      [STORAGE_KEYS.lastCodingTabId]: activeCodingTabId,
       [STORAGE_KEYS.pendingDistractionTabId]: tab.id,
       [STORAGE_KEYS.pendingDistractionSiteName]: distractionSiteName,
     });
@@ -618,13 +620,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     void (async () => {
       try {
         const state = await storageGet([
+          STORAGE_KEYS.lastCodingTabId,
           STORAGE_KEYS.activeCodingTabId,
-          STORAGE_KEYS.activeCodingUrl,
           STORAGE_KEYS.pendingDistractionTabId,
         ]);
 
-        const codingTabId = state[STORAGE_KEYS.activeCodingTabId];
-        const codingTabUrl = state[STORAGE_KEYS.activeCodingUrl];
+        const codingTabId = state[STORAGE_KEYS.lastCodingTabId] || state[STORAGE_KEYS.activeCodingTabId];
         const distractionTabId =
           state[STORAGE_KEYS.pendingDistractionTabId] || sender?.tab?.id || null;
 
@@ -634,8 +635,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         if (distractionTabId && distractionTabId !== codingTabId) {
           await chrome.tabs.remove(distractionTabId).catch(() => {});
-        } else if (distractionTabId === codingTabId && codingTabUrl) {
-          await chrome.tabs.update(codingTabId, { url: codingTabUrl, active: true });
         }
 
         await chrome.tabs.update(codingTabId, { active: true });
@@ -644,6 +643,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         await storageSet({
           [STORAGE_KEYS.sessionActive]: true,
           [STORAGE_KEYS.sessionPaused]: false,
+          [STORAGE_KEYS.lastCodingTabId]: codingTabId,
           [STORAGE_KEYS.pendingDistractionTabId]: null,
           [STORAGE_KEYS.pendingDistractionSiteName]: null,
         });
@@ -699,6 +699,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
         updates[STORAGE_KEYS.sessionPaused] = false;
         updates[STORAGE_KEYS.activeCodingTabId] = null;
         updates[STORAGE_KEYS.activeCodingUrl] = null;
+        updates[STORAGE_KEYS.lastCodingTabId] = null;
         shouldUpdate = true;
       }
 
