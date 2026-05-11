@@ -12,6 +12,10 @@ let pausedAt = null;
 let totalPausedMs = 0;
 let lastTypedText = '';
 let lastKeystrokeTime = 0;
+let youtubeStudyState = {
+  channelName: '',
+  isStudyChannel: false,
+};
 
 // Initialize session data
 const initializeSession = () => {
@@ -43,6 +47,86 @@ function updateLastTypedText(key) {
   }
 }
 
+function normalizeYouTubeChannelName(value) {
+  return String(value || '').trim().replace(/^@/, '').toLowerCase();
+}
+
+function isYouTubeHost() {
+  return window.location.hostname.includes('youtube.com');
+}
+
+function getYouTubeChannelNameFromTitle(title) {
+  const normalizedTitle = String(title || '').trim();
+  if (!normalizedTitle) {
+    return '';
+  }
+
+  const parts = normalizedTitle.split(' - ').map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2 && parts[parts.length - 1].toLowerCase() === 'youtube') {
+    return parts[parts.length - 2] || '';
+  }
+
+  return '';
+}
+
+function getYouTubeChannelNameFromUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+    const pathParts = pathname.split('/').filter(Boolean);
+
+    if (pathParts[0] && pathParts[0].startsWith('@')) {
+      return decodeURIComponent(pathParts[0]);
+    }
+
+    if (pathParts[0] === 'c' || pathParts[0] === 'channel' || pathParts[0] === 'user') {
+      return decodeURIComponent(pathParts[1] || '');
+    }
+  } catch {
+    // Fall through to title parsing.
+  }
+
+  return getYouTubeChannelNameFromTitle(document.title);
+}
+
+function getYouTubeChannelName() {
+  if (!isYouTubeHost()) {
+    return '';
+  }
+
+  return getYouTubeChannelNameFromUrl(window.location.href);
+}
+
+function isTrackableYouTubeChannel(channelName, studyChannels) {
+  const normalizedChannelName = normalizeYouTubeChannelName(channelName);
+  if (!normalizedChannelName) {
+    return false;
+  }
+
+  return (studyChannels || []).some(
+    (entry) => normalizeYouTubeChannelName(entry) === normalizedChannelName
+  );
+}
+
+async function refreshYouTubeStudyState() {
+  if (!isYouTubeHost()) {
+    youtubeStudyState = {
+      channelName: '',
+      isStudyChannel: false,
+    };
+    return;
+  }
+
+  const stored = await chrome.storage.local.get(['studyChannels']);
+  const channelName = getYouTubeChannelName();
+  const studyChannels = Array.isArray(stored.studyChannels) ? stored.studyChannels : [];
+
+  youtubeStudyState = {
+    channelName,
+    isStudyChannel: isTrackableYouTubeChannel(channelName, studyChannels),
+  };
+}
+
 function getElapsedMilliseconds() {
   const now = Date.now();
   const pausedDuration = totalPausedMs + (isSessionPaused && pausedAt ? now - pausedAt : 0);
@@ -51,6 +135,10 @@ function getElapsedMilliseconds() {
 
 function isTrackableTarget(target) {
   if (!target || !(target instanceof Element)) {
+    return false;
+  }
+
+  if (isYouTubeHost() && !youtubeStudyState.isStudyChannel) {
     return false;
   }
 
@@ -121,8 +209,11 @@ document.addEventListener('keydown', (event) => {
 
 // Calculate typing speed and other metrics every 30 seconds
 setInterval(() => {
-  const sessionData = captureMetrics();
-  persistSessionData(sessionData);
+  void (async () => {
+    await refreshYouTubeStudyState();
+    const sessionData = captureMetrics();
+    persistSessionData(sessionData);
+  })();
 }, 30000); // Update every 30 seconds
 
 // Get current platform
@@ -130,6 +221,7 @@ function getPlatform() {
   const host = window.location.hostname;
   if (host.includes('leetcode')) return 'LeetCode';
   if (host.includes('hackerrank')) return 'HackerRank';
+  if (host.includes('youtube')) return youtubeStudyState.isStudyChannel ? 'YouTube' : 'Unknown';
   if (host.includes('codepen')) return 'CodePen';
   if (host.includes('w3schools')) return 'W3Schools';
   if (host.includes('khanacademy')) return 'Khan Academy';
@@ -206,4 +298,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Initialize on load
 initializeSession();
+void refreshYouTubeStudyState();
 console.log('MindPulse Tracker initialized on', getPlatform());
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') {
+    return;
+  }
+
+  if (changes.studyChannels || changes.currentYouTubeChannelName) {
+    void refreshYouTubeStudyState();
+  }
+});

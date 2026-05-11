@@ -5,7 +5,10 @@ let currentUser = null;
 
 const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
 const FOCUS_MODE_STORAGE_KEY = 'focusMode';
+const STUDY_CHANNELS_STORAGE_KEY = 'studyChannels';
+const CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY = 'currentYouTubeChannelName';
 const DEFAULT_FOCUS_MODE = 2;
+const DEFAULT_STUDY_CHANNELS = ['@CodeWithHarry', '@ApnaCollege', '@Gurubaa'];
 
 const FIREBASE_API_KEY = 'AIzaSyBeXhjubogCTS4cmEu66F6cmLh9Fn9e9xs';
 const FIREBASE_PROJECT_ID = 'mindpulse-a017a';
@@ -61,6 +64,44 @@ function createEmptyMetrics() {
     platform: 'Unknown',
     sessionStartTime: Date.now(),
   };
+}
+
+function normalizeYouTubeChannelName(value) {
+  return String(value || '').trim().replace(/^@/, '').toLowerCase();
+}
+
+function isCurrentYouTubeChannelStudy(channelName, studyChannels) {
+  const normalizedChannelName = normalizeYouTubeChannelName(channelName);
+  if (!normalizedChannelName) {
+    return false;
+  }
+
+  return (studyChannels || []).some(
+    (entry) => normalizeYouTubeChannelName(entry) === normalizedChannelName
+  );
+}
+
+function updateYouTubeUI(channelName, studyChannels) {
+  const youtubeCard = document.getElementById('youtubeCard');
+  const youtubeChannelName = document.getElementById('youtubeChannelName');
+  const youtubeStudyBtn = document.getElementById('youtubeStudyBtn');
+
+  if (!youtubeCard || !youtubeChannelName || !youtubeStudyBtn) {
+    return;
+  }
+
+  const hasChannel = Boolean(channelName && String(channelName).trim());
+  if (!hasChannel) {
+    youtubeCard.classList.add('hidden');
+    return;
+  }
+
+  youtubeCard.classList.remove('hidden');
+  youtubeChannelName.textContent = channelName;
+
+  const isStudyChannel = isCurrentYouTubeChannelStudy(channelName, studyChannels);
+  youtubeStudyBtn.textContent = isStudyChannel ? 'Remove' : 'Mark as Study Channel';
+  youtubeStudyBtn.dataset.action = isStudyChannel ? 'remove' : 'add';
 }
 
 function normalizeStoredMetrics(sessionData) {
@@ -326,14 +367,24 @@ async function initializeAuthState() {
 // Read session data directly from storage
 async function fetchSessionData() {
   try {
-    const result = await storageGet(['sessionData', 'lastUpdate']);
+    const result = await storageGet([
+      'sessionData',
+      'lastUpdate',
+      STUDY_CHANNELS_STORAGE_KEY,
+      CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY,
+    ]);
     const metrics = normalizeStoredMetrics(result.sessionData);
     updateUI(metrics);
+    updateYouTubeUI(
+      result[CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY] || '',
+      result[STUDY_CHANNELS_STORAGE_KEY] || DEFAULT_STUDY_CHANNELS
+    );
     currentMetrics = metrics;
   } catch (error) {
     console.error('Error fetching session data:', error);
     const fallbackMetrics = createEmptyMetrics();
     updateUI(fallbackMetrics);
+    updateYouTubeUI('', DEFAULT_STUDY_CHANNELS);
     currentMetrics = fallbackMetrics;
   }
 }
@@ -367,6 +418,10 @@ function getTrackingLabel(platform) {
 
   if (normalized === 'hackerrank') {
     return 'HackerRank';
+  }
+
+  if (normalized === 'youtube') {
+    return 'YouTube';
   }
 
   if (normalized === 'codepen') {
@@ -551,6 +606,38 @@ document.querySelectorAll('[data-focus-mode]').forEach((button) => {
     void setFocusMode(button.dataset.focusMode);
   });
 });
+
+const youtubeStudyBtn = document.getElementById('youtubeStudyBtn');
+if (youtubeStudyBtn) {
+  youtubeStudyBtn.addEventListener('click', async () => {
+    const stored = await storageGet([
+      CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY,
+      STUDY_CHANNELS_STORAGE_KEY,
+    ]);
+    const channelName = String(stored[CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY] || '').trim();
+
+    if (!channelName) {
+      return;
+    }
+
+    const studyChannels = Array.isArray(stored[STUDY_CHANNELS_STORAGE_KEY])
+      ? stored[STUDY_CHANNELS_STORAGE_KEY]
+      : DEFAULT_STUDY_CHANNELS;
+    const isStudyChannel = isCurrentYouTubeChannelStudy(channelName, studyChannels);
+
+    await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        {
+          type: isStudyChannel ? 'REMOVE_YOUTUBE_STUDY_CHANNEL' : 'ADD_YOUTUBE_STUDY_CHANNEL',
+          channelName,
+        },
+        () => resolve(null)
+      );
+    });
+
+    await fetchSessionData();
+  });
+}
 
 document.getElementById('syncBtn').addEventListener('click', async () => {
   const syncBtn = document.getElementById('syncBtn');

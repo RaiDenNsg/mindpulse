@@ -29,7 +29,11 @@ const STORAGE_KEYS = {
   pendingDistractionTabId: 'pendingDistractionTabId',
   pendingDistractionSiteName: 'pendingDistractionSiteName',
   focusMode: 'focusMode',
+  studyChannels: 'studyChannels',
+  currentYouTubeChannelName: 'currentYouTubeChannelName',
 };
+
+const DEFAULT_STUDY_CHANNELS = ['@CodeWithHarry', '@ApnaCollege', '@Gurubaa'];
 
 const DEFAULT_FOCUS_MODE = 2;
 const MESSAGE_SOURCE_BACKGROUND = 'mindpulse-background';
@@ -138,6 +142,107 @@ function getDistractionSiteName(url) {
   return getSiteName(url, DISTRACTION_SITES);
 }
 
+function normalizeYouTubeChannelName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^@/, '')
+    .toLowerCase();
+}
+
+function isYouTubeUrl(url) {
+  return getHostname(url).includes('youtube.com');
+}
+
+function getYouTubeChannelNameFromTitle(title) {
+  const normalizedTitle = String(title || '').trim();
+  if (!normalizedTitle) {
+    return '';
+  }
+
+  const parts = normalizedTitle.split(' - ').map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2 && parts[parts.length - 1].toLowerCase() === 'youtube') {
+    return parts[parts.length - 2] || '';
+  }
+
+  return '';
+}
+
+function getYouTubeChannelName(tab) {
+  if (!tab?.url) {
+    return '';
+  }
+
+  try {
+    const parsedUrl = new URL(tab.url);
+    const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+    const pathParts = pathname.split('/').filter(Boolean);
+
+    if (pathParts[0] && pathParts[0].startsWith('@')) {
+      return decodeURIComponent(pathParts[0]);
+    }
+
+    if (pathParts[0] === 'c' || pathParts[0] === 'channel' || pathParts[0] === 'user') {
+      const fromPath = pathParts[1] || '';
+      if (fromPath) {
+        return decodeURIComponent(fromPath);
+      }
+    }
+  } catch {
+    // Fall through to title parsing.
+  }
+
+  return getYouTubeChannelNameFromTitle(tab.title);
+}
+
+async function ensureDefaultStudyChannels() {
+  const state = await storageGet([STORAGE_KEYS.studyChannels]);
+  if (!Array.isArray(state[STORAGE_KEYS.studyChannels]) || state[STORAGE_KEYS.studyChannels].length === 0) {
+    await storageSet({ [STORAGE_KEYS.studyChannels]: DEFAULT_STUDY_CHANNELS });
+    return DEFAULT_STUDY_CHANNELS;
+  }
+
+  return state[STORAGE_KEYS.studyChannels];
+}
+
+async function getStudyChannels() {
+  const state = await storageGet([STORAGE_KEYS.studyChannels]);
+  if (Array.isArray(state[STORAGE_KEYS.studyChannels]) && state[STORAGE_KEYS.studyChannels].length > 0) {
+    return state[STORAGE_KEYS.studyChannels];
+  }
+
+  return ensureDefaultStudyChannels();
+}
+
+function isStudyYouTubeChannel(channelName, studyChannels) {
+  const normalizedChannelName = normalizeYouTubeChannelName(channelName);
+  if (!normalizedChannelName) {
+    return false;
+  }
+
+  return (studyChannels || []).some((entry) => normalizeYouTubeChannelName(entry) === normalizedChannelName);
+}
+
+async function updateYouTubeSessionState(tab) {
+  const channelName = getYouTubeChannelName(tab);
+  const studyChannels = await getStudyChannels();
+  const isStudyChannel = isStudyYouTubeChannel(channelName, studyChannels);
+
+  await storageSet({
+    [STORAGE_KEYS.currentYouTubeChannelName]: channelName || null,
+  });
+
+  if (!channelName) {
+    return;
+  }
+
+  if (isStudyChannel) {
+    await handleCodingTab(tab, 'YouTube');
+    return;
+  }
+
+  await handleDistractionTab(tab, 'YouTube');
+}
+
 function normalizeFocusMode(value) {
   const mode = Number.parseInt(value, 10);
   return mode === 1 || mode === 2 || mode === 3 ? mode : DEFAULT_FOCUS_MODE;
@@ -220,6 +325,15 @@ async function updateSessionStateFromTab(tab) {
     if (!tab?.url) {
       return;
     }
+
+    if (isYouTubeUrl(tab.url)) {
+      await updateYouTubeSessionState(tab);
+      return;
+    }
+
+    await storageSet({
+      [STORAGE_KEYS.currentYouTubeChannelName]: null,
+    });
 
     const codingSiteName = getCodingSiteName(tab.url);
     if (codingSiteName) {
@@ -358,6 +472,8 @@ async function handleDistractionTab(tab, distractionSiteName) {
 
 async function initializeSessionState() {
   try {
+    await ensureDefaultStudyChannels();
+
     const tabs = await new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, resolve);
     });
@@ -424,6 +540,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       data: mergedData,
       source: MESSAGE_SOURCE_BACKGROUND,
     });
+  }
+
+  if (request.type === 'ADD_YOUTUBE_STUDY_CHANNEL' || request.type === 'REMOVE_YOUTUBE_STUDY_CHANNEL') {
+    void (async () => {
+      try {
+        const channelName = String(request.channelName || '').trim();
+        if (!channelName) {
+          sendResponse({ ok: false });
+          return;
+        }
+
+        const state = await storageGet([STORAGE_KEYS.studyChannels]);
+        const studyChannels = Array.isArray(state[STORAGE_KEYS.studyChannels])
+          ? [...state[STORAGE_KEYS.studyChannels]]
+          : [...DEFAULT_STUDY_CHANNELS];
+
+        const normalizedChannelName = normalizeYouTubeChannelName(channelName);
+        const filteredChannels = studyChannels.filter(
+          (entry) => normalizeYouTubeChannelName(entry) !== normalizedChannelName
+        );
+
+        if (request.type === 'ADD_YOUTUBE_STUDY_CHANNEL') {
+          filteredChannels.push(channelName);
+        }
+
+        await storageSet({ [STORAGE_KEYS.studyChannels]: filteredChannels });
+        sendResponse({ ok: true, studyChannels: filteredChannels });
+      } catch (error) {
+        console.error('[MindPulse] YouTube study channel update failed:', error);
+        sendResponse({ ok: false });
+      }
+    })();
+
+    return true;
   }
 
   if (request.type === 'RESET_SESSION') {
@@ -508,7 +658,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   try {
-    if (!tab?.active || (!changeInfo.url && changeInfo.status !== 'complete')) {
+    if (!tab?.active || (!changeInfo.url && changeInfo.status !== 'complete' && !changeInfo.title)) {
       return;
     }
 

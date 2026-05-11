@@ -176,6 +176,36 @@ body {
   background: #1e1e1e;
 }
 
+.youtube-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #1e1e1e;
+  background: linear-gradient(180deg, #121212 0%, #0d0d0d 100%);
+}
+
+.youtube-card-label {
+  font-size: 10px;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+}
+
+.youtube-channel {
+  font-size: 14px;
+  line-height: 1.35;
+  color: #ffffff;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.youtube-action {
+  width: 100%;
+}
+
 .hidden {
   display: none;
 }
