@@ -6,6 +6,7 @@ let currentUser = null;
 const AUTH_STORAGE_KEY = 'mindpulseAuthUser';
 const FOCUS_MODE_STORAGE_KEY = 'focusMode';
 const STUDY_CHANNELS_STORAGE_KEY = 'studyChannels';
+const YOUTUBE_CHANNEL_STORAGE_KEY = 'youtubeChannel';
 const CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY = 'currentYouTubeChannelName';
 const DEFAULT_FOCUS_MODE = 2;
 const DEFAULT_STUDY_CHANNELS = ['@CodeWithHarry', '@ApnaCollege', '@Gurubaa'];
@@ -97,7 +98,7 @@ function updateYouTubeUI(channelName, studyChannels) {
   }
 
   youtubeCard.classList.remove('hidden');
-  youtubeChannelName.textContent = channelName;
+  youtubeChannelName.textContent = String(channelName).replace(/\s*🔥\s*/g, ' ').trim();
 
   const isStudyChannel = isCurrentYouTubeChannelStudy(channelName, studyChannels);
   youtubeStudyBtn.textContent = isStudyChannel ? 'Remove' : 'Mark as Study Channel';
@@ -371,12 +372,13 @@ async function fetchSessionData() {
       'sessionData',
       'lastUpdate',
       STUDY_CHANNELS_STORAGE_KEY,
+      YOUTUBE_CHANNEL_STORAGE_KEY,
       CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY,
     ]);
     const metrics = normalizeStoredMetrics(result.sessionData);
     updateUI(metrics);
     updateYouTubeUI(
-      result[CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY] || '',
+      result[YOUTUBE_CHANNEL_STORAGE_KEY] || result[CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY] || '',
       result[STUDY_CHANNELS_STORAGE_KEY] || DEFAULT_STUDY_CHANNELS
     );
     currentMetrics = metrics;
@@ -611,10 +613,13 @@ const youtubeStudyBtn = document.getElementById('youtubeStudyBtn');
 if (youtubeStudyBtn) {
   youtubeStudyBtn.addEventListener('click', async () => {
     const stored = await storageGet([
+      YOUTUBE_CHANNEL_STORAGE_KEY,
       CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY,
       STUDY_CHANNELS_STORAGE_KEY,
     ]);
-    const channelName = String(stored[CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY] || '').trim();
+    const channelName = String(
+      stored[YOUTUBE_CHANNEL_STORAGE_KEY] || stored[CURRENT_YOUTUBE_CHANNEL_NAME_STORAGE_KEY] || ''
+    ).trim();
 
     if (!channelName) {
       return;

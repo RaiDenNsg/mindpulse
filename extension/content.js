@@ -17,6 +17,8 @@ let youtubeStudyState = {
   isStudyChannel: false,
 };
 
+const YOUTUBE_CHANNEL_STORAGE_KEY = 'youtubeChannel';
+
 // Initialize session data
 const initializeSession = () => {
   keystrokeCount = 0;
@@ -53,6 +55,19 @@ function normalizeYouTubeChannelName(value) {
 
 function isYouTubeHost() {
   return window.location.hostname.includes('youtube.com');
+}
+
+function getYouTubeChannelNameFromDom() {
+  const channelLink =
+    document.querySelector('#channel-name a') ||
+    document.querySelector('ytd-channel-name a');
+
+  if (!channelLink) {
+    return '';
+  }
+
+  const text = channelLink.textContent || channelLink.getAttribute('href') || '';
+  return String(text).trim();
 }
 
 function getYouTubeChannelNameFromTitle(title) {
@@ -94,7 +109,10 @@ function getYouTubeChannelName() {
     return '';
   }
 
-  return getYouTubeChannelNameFromUrl(window.location.href);
+  return (
+    getYouTubeChannelNameFromDom() ||
+    getYouTubeChannelNameFromUrl(window.location.href)
+  );
 }
 
 function isTrackableYouTubeChannel(channelName, studyChannels) {
@@ -114,6 +132,11 @@ async function refreshYouTubeStudyState() {
       channelName: '',
       isStudyChannel: false,
     };
+
+    await chrome.storage.local.set({
+      [YOUTUBE_CHANNEL_STORAGE_KEY]: null,
+      currentYouTubeChannelName: null,
+    });
     return;
   }
 
@@ -125,6 +148,11 @@ async function refreshYouTubeStudyState() {
     channelName,
     isStudyChannel: isTrackableYouTubeChannel(channelName, studyChannels),
   };
+
+  await chrome.storage.local.set({
+    [YOUTUBE_CHANNEL_STORAGE_KEY]: channelName || null,
+    currentYouTubeChannelName: channelName || null,
+  });
 }
 
 function getElapsedMilliseconds() {
@@ -301,12 +329,35 @@ initializeSession();
 void refreshYouTubeStudyState();
 console.log('MindPulse Tracker initialized on', getPlatform());
 
+let youtubeRefreshTimer = null;
+const youtubeDomObserver = new MutationObserver(() => {
+  if (!isYouTubeHost()) {
+    return;
+  }
+
+  if (youtubeRefreshTimer) {
+    clearTimeout(youtubeRefreshTimer);
+  }
+
+  youtubeRefreshTimer = setTimeout(() => {
+    void refreshYouTubeStudyState();
+  }, 250);
+});
+
+if (isYouTubeHost()) {
+  youtubeDomObserver.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
+}
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') {
     return;
   }
 
-  if (changes.studyChannels || changes.currentYouTubeChannelName) {
+  if (changes.studyChannels || changes.currentYouTubeChannelName || changes.youtubeChannel) {
     void refreshYouTubeStudyState();
   }
 });

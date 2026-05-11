@@ -223,11 +223,20 @@ function isStudyYouTubeChannel(channelName, studyChannels) {
 }
 
 async function updateYouTubeSessionState(tab) {
-  const channelName = getYouTubeChannelName(tab);
+  const state = await storageGet([
+    STORAGE_KEYS.studyChannels,
+    STORAGE_KEYS.currentYouTubeChannelName,
+    'youtubeChannel',
+  ]);
+  const channelName =
+    state.youtubeChannel ||
+    state[STORAGE_KEYS.currentYouTubeChannelName] ||
+    getYouTubeChannelName(tab);
   const studyChannels = await getStudyChannels();
   const isStudyChannel = isStudyYouTubeChannel(channelName, studyChannels);
 
   await storageSet({
+    youtubeChannel: channelName || null,
     [STORAGE_KEYS.currentYouTubeChannelName]: channelName || null,
   });
 
