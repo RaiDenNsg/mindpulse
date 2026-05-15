@@ -568,6 +568,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.type === 'YOUTUBE_CHANNEL_CHANGED') {
+    void (async () => {
+      try {
+        const channelName = String(request.channel || '').trim();
+        const tab = sender?.tab || (request.tabId ? await getTab(request.tabId) : null);
+        if (!tab || !channelName) return;
+
+        const studyChannels = await getStudyChannels();
+        const isStudy = isStudyYouTubeChannel(channelName, studyChannels);
+
+        await storageSet({
+          youtubeChannel: channelName || null,
+          [STORAGE_KEYS.currentYouTubeChannelName]: channelName || null,
+        });
+
+        if (isStudy) {
+          await handleCodingTab(tab, 'YouTube');
+        } else {
+          await handleDistractionTab(tab, 'YouTube');
+        }
+      } catch (error) {
+        console.error('[MindPulse] YOUTUBE_CHANNEL_CHANGED handling failed:', error);
+      }
+    })();
+
+    return true;
+  }
+
   if (request.type === 'ADD_YOUTUBE_STUDY_CHANNEL' || request.type === 'REMOVE_YOUTUBE_STUDY_CHANNEL') {
     void (async () => {
       try {

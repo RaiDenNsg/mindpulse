@@ -352,23 +352,33 @@ if (isYouTubeHost()) {
   });
 }
 
-// Detect SPA URL changes on YouTube and notify background
+// Poll for URL changes every 2 seconds (YouTube is a SPA)
 let lastUrl = location.href;
-const youtubeUrlObserver = new MutationObserver(() => {
+setInterval(() => {
   try {
     if (!isYouTubeHost()) return;
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      chrome.runtime.sendMessage({ type: 'YOUTUBE_URL_CHANGED', url: location.href });
+
+      // Wait 2 seconds for YouTube to update DOM with channel info
+      setTimeout(() => {
+        const channelEl = document.querySelector('ytd-channel-name a, #channel-name a, #owner a');
+        const channelName = channelEl ? String(channelEl.textContent || '').trim() : null;
+
+        if (channelName) {
+          chrome.storage.local.set({ youtubeChannel: channelName });
+          chrome.runtime.sendMessage({
+            type: 'YOUTUBE_CHANNEL_CHANGED',
+            channel: channelName,
+            url: location.href,
+          });
+        }
+      }, 2000);
     }
   } catch (e) {
     // ignore
   }
-});
-
-if (isYouTubeHost()) {
-  youtubeUrlObserver.observe(document, { subtree: true, childList: true });
-}
+}, 2000);
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') {
