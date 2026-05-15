@@ -318,6 +318,23 @@ async function checkStuckDetection() {
       return;
     }
 
+    // If this is YouTube, double-check it's not actually a study channel
+    if (distractionSiteName === 'YouTube') {
+      try {
+        const stateChannels = await storageGet([STORAGE_KEYS.studyChannels, STORAGE_KEYS.currentYouTubeChannelName, 'youtubeChannel']);
+        const channelName = stateChannels.youtubeChannel || stateChannels[STORAGE_KEYS.currentYouTubeChannelName] || getYouTubeChannelName(tab);
+        const studyChannels = await getStudyChannels();
+        if (isStudyYouTubeChannel(channelName, studyChannels)) {
+          // Treat as coding site instead of distraction
+          await handleCodingTab(tab, 'YouTube');
+          return;
+        }
+      } catch (e) {
+        // proceed with existing distraction flow on error
+        console.error('[MindPulse] study channel check failed:', e);
+      }
+    }
+
     const codingTab = await getTab(activeCodingTabId);
     if (!codingTab) {
       return;
@@ -384,6 +401,10 @@ async function handleCodingTab(tab, codingSiteName) {
     }
 
     await storageSet(nextState);
+    // Dismiss any existing overlay on this tab (useful for study YouTube tabs)
+    try {
+      await sendTabMessage(tab.id, { type: 'HIDE_OVERLAY' });
+    } catch {}
     console.log('MindPulse active coding tab:', codingSiteName, tab.id);
   } catch (error) {
     console.error('[MindPulse] handleCodingTab error:', error);

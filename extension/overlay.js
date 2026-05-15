@@ -381,4 +381,12 @@ chrome.runtime.onMessage.addListener((request) => {
   if (request?.type === 'SHOW_STUCK_OVERLAY') {
     void showStuckOverlay();
   }
+  
+  if (request?.type === 'HIDE_OVERLAY') {
+    try {
+      removeOverlay();
+    } catch (e) {
+      // ignore
+    }
+  }
 });
