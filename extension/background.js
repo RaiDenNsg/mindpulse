@@ -374,6 +374,7 @@ async function handleCodingTab(tab, codingSiteName) {
       [STORAGE_KEYS.activeCodingUrl]: tab.url,
       [STORAGE_KEYS.pendingDistractionTabId]: null,
       [STORAGE_KEYS.pendingDistractionSiteName]: null,
+      [STORAGE_KEYS.lastCodingTabId]: tab.id,
     };
 
     // Resume tracking if it was paused
@@ -551,6 +552,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       data: mergedData,
       source: MESSAGE_SOURCE_BACKGROUND,
     });
+  }
+
+  if (request.type === 'YOUTUBE_URL_CHANGED') {
+    void (async () => {
+      try {
+        const tab = sender?.tab || (request.tabId ? await getTab(request.tabId) : null);
+        if (!tab) return;
+        await updateYouTubeSessionState(tab);
+      } catch (error) {
+        console.error('[MindPulse] YOUTUBE_URL_CHANGED handling failed:', error);
+      }
+    })();
+
+    return true;
   }
 
   if (request.type === 'ADD_YOUTUBE_STUDY_CHANNEL' || request.type === 'REMOVE_YOUTUBE_STUDY_CHANNEL') {

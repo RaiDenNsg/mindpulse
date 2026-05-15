@@ -352,6 +352,24 @@ if (isYouTubeHost()) {
   });
 }
 
+// Detect SPA URL changes on YouTube and notify background
+let lastUrl = location.href;
+const youtubeUrlObserver = new MutationObserver(() => {
+  try {
+    if (!isYouTubeHost()) return;
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      chrome.runtime.sendMessage({ type: 'YOUTUBE_URL_CHANGED', url: location.href });
+    }
+  } catch (e) {
+    // ignore
+  }
+});
+
+if (isYouTubeHost()) {
+  youtubeUrlObserver.observe(document, { subtree: true, childList: true });
+}
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') {
     return;
